@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Dashboard</title>
+</head>
+
+<body style="font-family:Arial; background:#111; color:white; padding:20px;">
+
+<h2>Tambah Produk</h2>
+
+<input id="name" placeholder="Nama produk"><br><br>
+<input id="price" placeholder="Harga"><br><br>
+<input id="image" placeholder="Link gambar"><br><br>
+
+<button onclick="addProduct()">Add Product</button>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDCTH6uXY-ksrOJ0HnLN3l6tCeF1wqojhI",
+  authDomain: "uniframe-order.firebaseapp.com",
+  projectId: "uniframe-order",
+  storageBucket: "uniframe-order.firebasestorage.app",
+  messagingSenderId: "616815976328",
+  appId: "1:616815976328:web:4ba41c34762969f4f4a43d"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+function addProduct(){
+
+  let name = document.getElementById("name").value;
+  let price = parseInt(document.getElementById("price").value);
+  let image = document.getElementById("image").value;
+
+  if(!name || !price || !image){
+    alert("Isi semua field!");
+    return;
+  }
+
+  db.collection("products").add({
+    name: name,
+    price: price,
+    image: image,
+    active: true
+  });
+
+  alert("Produk berjaya tambah!");
+}
+</script>
+
+</body>
+</html>
