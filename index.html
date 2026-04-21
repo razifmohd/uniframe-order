@@ -122,7 +122,6 @@ function checkout(){
   document.getElementById("checkoutForm").style.display = "block";
 }
 
-// ❌ Close form
 function closeForm(){
   document.getElementById("checkoutForm").style.display = "none";
 }
@@ -140,7 +139,14 @@ function submitOrder(){
     return;
   }
 
-  let message = "Order:\n";
+  // 🔥 UPGRADED MESSAGE
+  let message = "ORDER BARU\n\n";
+
+  message += "Nama: " + name + "\n";
+  message += "Phone: " + phoneUser + "\n";
+  message += "Alamat: " + address + "\n\n";
+
+  message += "Item:\n";
 
   cart.forEach(item => {
     message += "- " + item.name + " RM" + item.price + "\n";
