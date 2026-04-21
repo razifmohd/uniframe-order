@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Uniframe Order</title>
+
+  <style>
+    body {
+      font-family: Arial;
+      margin: 0;
+      background: #0f0f0f;
+      color: white;
+    }
+
+    .header {
+      padding: 15px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .product {
+      background: #1a1a1a;
+      margin: 10px;
+      padding: 15px;
+      border-radius: 12px;
+    }
+
+    button {
+      background: #ffcc00;
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      width: 100%;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    .checkout {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: #000;
+      padding: 15px;
+    }
+
+    #checkoutForm {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: #111;
+      padding: 15px;
+      border-top: 2px solid #ffcc00;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 8px;
+      border: none;
+    }
+
+    .cancel-btn {
+      background: #444;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="header">Uniframe</div>
+
+<div id="products"></div>
+
+<div class="checkout">
+  Total: RM<span id="total">0</span>
+  <button onclick="checkout()">Order via WhatsApp</button>
+</div>
+
+<!-- 🔥 FORM -->
+<div id="checkoutForm">
+  <h3>Maklumat Customer</h3>
+
+  <input id="custName" placeholder="Nama">
+  <input id="custPhone" placeholder="No Phone">
+  <textarea id="custAddress" placeholder="Alamat"></textarea>
+
+  <button onclick="submitOrder()">Confirm Order</button>
+  <button class="cancel-btn" onclick="closeForm()">Cancel</button>
+</div>
+
+<script>
+let cart = [];
+let total = 0;
+
+const products = [
+  {name:"Frame Allah A2", price:50},
+  {name:"Acrylic Bismillah", price:80}
+];
+
+const container = document.getElementById("products");
+
+products.forEach(p=>{
+  let div = document.createElement("div");
+  div.className = "product";
+  div.innerHTML = `
+    <h3>${p.name}</h3>
+    <p>RM${p.price}</p>
+    <button onclick="add('${p.name}',${p.price})">Add</button>
+  `;
+  container.appendChild(div);
+});
+
+function add(name, price){
+  cart.push({name, price});
+  total += price;
+  document.getElementById("total").innerText = total;
+}
+
+function checkout(){
+  document.getElementById("checkoutForm").style.display = "block";
+}
+
+// ❌ Close form
+function closeForm(){
+  document.getElementById("checkoutForm").style.display = "none";
+}
+
+// 🔥 MAIN FUNCTION
+function submitOrder(){
+
+  let name = document.getElementById("custName").value;
+  let phoneUser = document.getElementById("custPhone").value;
+  let address = document.getElementById("custAddress").value;
+
+  // ✅ VALIDATION
+  if(!name || !phoneUser || !address){
+    alert("Sila isi semua maklumat");
+    return;
+  }
+
+  let message = "Order:\n";
+
+  cart.forEach(item => {
+    message += "- " + item.name + " RM" + item.price + "\n";
+  });
+
+  message += "\nTotal: RM" + total;
+
+  // 🔥 SAVE FIREBASE
+  db.collection("orders").add({
+    name: name,
+    phone: phoneUser,
+    address: address,
+    items: cart,
+    total: total,
+    status: "pending",
+    time: new Date()
+  });
+
+  // WhatsApp
+  let phone = "60179891664";
+  let url = "https://wa.me/" + phone + "?text=" + encodeURIComponent(message);
+
+  window.open(url, "_blank");
+
+  // ✅ CLEAR CART
+  cart = [];
+  total = 0;
+  document.getElementById("total").innerText = 0;
+
+  // reset form
+  document.getElementById("checkoutForm").style.display = "none";
+}
+</script>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDCTH6uXY-ksrOJ0HnLN316tCeF1wqojhI",
+  authDomain: "uniframe-order.firebaseapp.com",
+  projectId: "uniframe-order",
+  storageBucket: "uniframe-order.firebasestorage.app",
+  messagingSenderId: "616815976328",
+  appId: "1:616815976328:web:4ba41c34762969f4f4a43d"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+</script>
+
+</body>
+</html>
