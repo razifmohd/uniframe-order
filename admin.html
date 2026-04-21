@@ -14,6 +14,11 @@
 
 <button onclick="addProduct()">Add Product</button>
 
+<hr>
+
+<h3>Senarai Produk</h3>
+<div id="productList"></div>
+
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
@@ -30,6 +35,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+// 🔥 ADD PRODUCT
 function addProduct(){
 
   let name = document.getElementById("name").value;
@@ -46,10 +52,57 @@ function addProduct(){
     price: price,
     image: image,
     active: true
-  });
+  }).then(() => {
+    alert("Produk berjaya tambah!");
 
-  alert("Produk berjaya tambah!");
+    // clear input
+    document.getElementById("name").value = "";
+    document.getElementById("price").value = "";
+    document.getElementById("image").value = "";
+
+    loadProducts();
+  });
 }
+
+// 🔥 LOAD PRODUCT LIST
+function loadProducts(){
+  const list = document.getElementById("productList");
+  list.innerHTML = "";
+
+  db.collection("products").get().then(snapshot => {
+    snapshot.forEach(doc => {
+      let p = doc.data();
+
+      let div = document.createElement("div");
+      div.style.border = "1px solid #555";
+      div.style.padding = "10px";
+      div.style.marginBottom = "10px";
+      div.style.borderRadius = "10px";
+
+      div.innerHTML = `
+        <b>${p.name}</b> - RM${p.price}<br>
+        <img src="${p.image}" width="120" style="margin-top:5px;"><br><br>
+        <button onclick="deleteProduct('${doc.id}')">Delete</button>
+      `;
+
+      list.appendChild(div);
+    });
+  });
+}
+
+// 🔥 DELETE PRODUCT
+function deleteProduct(id){
+  if(confirm("Delete produk ni?")){
+    db.collection("products").doc(id).delete().then(() => {
+      alert("Produk deleted");
+      loadProducts();
+    });
+  }
+}
+
+// 🔥 AUTO LOAD
+loadProducts();
+
 </script>
 
 </body>
