@@ -38,7 +38,6 @@ const db = firebase.firestore();
 
 let editId = null;
 
-// 🔥 ADD PRODUCT
 function addProduct(){
   let name = document.getElementById("name").value;
   let price = parseInt(document.getElementById("price").value);
@@ -50,29 +49,19 @@ function addProduct(){
   }
 
   db.collection("products").add({
-    name: name,
-    price: price,
-    image: image,
-    active: true
+    name, price, image, active: true
   }).then(() => {
-    alert("Produk berjaya tambah!");
+    alert("Produk tambah!");
     clearForm();
     loadProducts();
   });
 }
 
-// 🔥 LOAD PRODUCT LIST
 function loadProducts(){
   const list = document.getElementById("productList");
   list.innerHTML = "";
 
   db.collection("products").get().then(snapshot => {
-
-    if(snapshot.empty){
-      list.innerHTML = "Tiada produk lagi";
-      return;
-    }
-
     snapshot.forEach(doc => {
       let p = doc.data();
 
@@ -80,11 +69,10 @@ function loadProducts(){
       div.style.border = "1px solid #555";
       div.style.padding = "10px";
       div.style.marginBottom = "10px";
-      div.style.borderRadius = "10px";
 
       div.innerHTML = `
         <b>${p.name}</b> - RM${p.price}<br>
-        <img src="${p.image}" width="120" style="margin-top:5px;"><br><br>
+        <img src="${p.image}" width="120"><br><br>
         <button onclick="editProduct('${doc.id}', '${p.name}', ${p.price}, '${p.image}')">Edit</button>
         <button onclick="deleteProduct('${doc.id}')">Delete</button>
       `;
@@ -94,17 +82,14 @@ function loadProducts(){
   });
 }
 
-// 🔥 DELETE PRODUCT
 function deleteProduct(id){
   if(confirm("Delete produk ni?")){
     db.collection("products").doc(id).delete().then(() => {
-      alert("Produk deleted");
       loadProducts();
     });
   }
 }
 
-// 🔥 EDIT (LOAD DATA KE FORM)
 function editProduct(id, name, price, image){
   editId = id;
 
@@ -112,10 +97,9 @@ function editProduct(id, name, price, image){
   document.getElementById("price").value = price;
   document.getElementById("image").value = image;
 
-  alert("Edit mode ON. Klik Update Product");
+  alert("Edit mode ON");
 }
 
-// 🔥 UPDATE PRODUCT
 function updateProduct(){
   if(!editId){
     alert("Klik EDIT dulu!");
@@ -126,33 +110,23 @@ function updateProduct(){
   let price = parseInt(document.getElementById("price").value);
   let image = document.getElementById("image").value;
 
-  if(!name || !price || !image){
-    alert("Isi semua field!");
-    return;
-  }
-
   db.collection("products").doc(editId).update({
-    name: name,
-    price: price,
-    image: image
+    name, price, image
   }).then(() => {
-    alert("Produk updated!");
+    alert("Updated!");
     editId = null;
     clearForm();
     loadProducts();
   });
 }
 
-// 🔥 CLEAR FORM
 function clearForm(){
   document.getElementById("name").value = "";
   document.getElementById("price").value = "";
   document.getElementById("image").value = "";
 }
 
-// 🔥 AUTO LOAD
 loadProducts();
-
 </script>
 
 </body>
