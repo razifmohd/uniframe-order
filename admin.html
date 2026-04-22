@@ -12,10 +12,6 @@
       padding: 20px;
     }
 
-    h2, h3 {
-      margin-bottom: 10px;
-    }
-
     input {
       width: 100%;
       padding: 12px;
@@ -30,48 +26,27 @@
       padding: 10px 15px;
       border: none;
       border-radius: 8px;
-      margin: 5px 5px 5px 0;
+      margin: 5px;
       cursor: pointer;
       font-weight: bold;
     }
 
-    .add-btn {
-      background: #ffcc00;
-      color: black;
-    }
+    .add-btn { background: #ffcc00; color: black; }
+    .update-btn { background: #00c853; color: white; }
+    .edit-btn { background: #2196f3; color: white; }
+    .delete-btn { background: #e53935; color: white; }
 
-    .update-btn {
-      background: #00c853;
-      color: white;
-    }
-
-    .edit-btn {
-      background: #2196f3;
-      color: white;
-    }
-
-    .delete-btn {
-      background: #e53935;
-      color: white;
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 15px;
     }
 
     .card {
       background: #1a1a1a;
       border-radius: 12px;
       padding: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);
       text-align: center;
-      transition: 0.2s;
-    }
-
-    .card:hover {
-      transform: scale(1.03);
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      gap: 15px;
     }
 
     img {
@@ -85,11 +60,6 @@
       color: #ffcc00;
       font-weight: bold;
     }
-
-    hr {
-      border: 1px solid #333;
-      margin: 20px 0;
-    }
   </style>
 </head>
 
@@ -99,7 +69,8 @@
 
 <input id="name" placeholder="Nama produk">
 <input id="price" placeholder="Harga">
-<input id="image" placeholder="Link gambar">
+<input id="category" placeholder="Kategori">
+<input type="file" id="imageFile">
 
 <button class="add-btn" onclick="addProduct()">Add Product</button>
 <button class="update-btn" onclick="updateProduct()">Update Product</button>
@@ -111,6 +82,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
 <script>
 const firebaseConfig = {
@@ -130,18 +102,29 @@ let editId = null;
 function addProduct(){
   let name = document.getElementById("name").value;
   let price = parseInt(document.getElementById("price").value);
-  let image = document.getElementById("image").value;
+  let category = document.getElementById("category").value;
+  let file = document.getElementById("imageFile").files[0];
 
-  if(!name || !price || !image){
+  if(!name || !price || !category || !file){
     alert("Isi semua field!");
     return;
   }
 
-  db.collection("products").add({
-    name, price, image, active: true
-  }).then(() => {
-    clearForm();
-    loadProducts();
+  let storageRef = firebase.storage().ref("products/" + file.name);
+
+  storageRef.put(file).then(snapshot => {
+    snapshot.ref.getDownloadURL().then(url => {
+
+      db.collection("products").add({
+        name, price, category,
+        image: url,
+        active: true
+      }).then(() => {
+        clearForm();
+        loadProducts();
+      });
+
+    });
   });
 }
 
@@ -159,9 +142,10 @@ function loadProducts(){
       div.innerHTML = `
         <img src="${p.image}">
         <h4>${p.name}</h4>
+        <div>${p.category}</div>
         <div class="price">RM${p.price}</div>
 
-        <button class="edit-btn" onclick="editProduct('${doc.id}', '${p.name}', ${p.price}, '${p.image}')">Edit</button>
+        <button class="edit-btn" onclick="editProduct('${doc.id}', '${p.name}', ${p.price}, '${p.image}', '${p.category}')">Edit</button>
         <button class="delete-btn" onclick="deleteProduct('${doc.id}')">Delete</button>
       `;
 
@@ -171,19 +155,15 @@ function loadProducts(){
 }
 
 function deleteProduct(id){
-  if(confirm("Delete produk ni?")){
-    db.collection("products").doc(id).delete().then(() => {
-      loadProducts();
-    });
-  }
+  db.collection("products").doc(id).delete().then(loadProducts);
 }
 
-function editProduct(id, name, price, image){
+function editProduct(id, name, price, image, category){
   editId = id;
 
   document.getElementById("name").value = name;
   document.getElementById("price").value = price;
-  document.getElementById("image").value = image;
+  document.getElementById("category").value = category;
 }
 
 function updateProduct(){
@@ -194,10 +174,10 @@ function updateProduct(){
 
   let name = document.getElementById("name").value;
   let price = parseInt(document.getElementById("price").value);
-  let image = document.getElementById("image").value;
+  let category = document.getElementById("category").value;
 
   db.collection("products").doc(editId).update({
-    name, price, image
+    name, price, category
   }).then(() => {
     editId = null;
     clearForm();
@@ -208,7 +188,8 @@ function updateProduct(){
 function clearForm(){
   document.getElementById("name").value = "";
   document.getElementById("price").value = "";
-  document.getElementById("image").value = "";
+  document.getElementById("category").value = "";
+  document.getElementById("imageFile").value = "";
 }
 
 loadProducts();
