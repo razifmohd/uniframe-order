@@ -47,6 +47,11 @@
       border-radius: 12px;
       padding: 10px;
       text-align: center;
+      transition: 0.2s;
+    }
+
+    .card:hover {
+      transform: scale(1.03);
     }
 
     img {
@@ -82,7 +87,6 @@
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
 <script>
 const firebaseConfig = {
@@ -99,7 +103,9 @@ const db = firebase.firestore();
 
 let editId = null;
 
+// 🔥 ADD PRODUCT (IMG BB UPLOAD)
 function addProduct(){
+
   let name = document.getElementById("name").value;
   let price = parseInt(document.getElementById("price").value);
   let category = document.getElementById("category").value;
@@ -110,24 +116,42 @@ function addProduct(){
     return;
   }
 
-  let storageRef = firebase.storage().ref("products/" + file.name);
+  let reader = new FileReader();
 
-  storageRef.put(file).then(snapshot => {
-    snapshot.ref.getDownloadURL().then(url => {
+  reader.onload = function(){
+    let base64 = reader.result.split(',')[1];
+
+    let formData = new FormData();
+    formData.append("image", base64);
+
+    fetch("https://api.imgbb.com/1/upload?key=682bdd4f17d96ffb219da4dcc3c4b2c4", {
+      method: "POST",
+      body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+
+      let imageUrl = data.data.url;
 
       db.collection("products").add({
-        name, price, category,
-        image: url,
+        name,
+        price,
+        category,
+        image: imageUrl,
         active: true
       }).then(() => {
+        alert("Produk tambah!");
         clearForm();
         loadProducts();
       });
 
     });
-  });
+  };
+
+  reader.readAsDataURL(file);
 }
 
+// 🔥 LOAD PRODUCT
 function loadProducts(){
   const list = document.getElementById("productList");
   list.innerHTML = "";
@@ -154,10 +178,12 @@ function loadProducts(){
   });
 }
 
+// 🔥 DELETE
 function deleteProduct(id){
   db.collection("products").doc(id).delete().then(loadProducts);
 }
 
+// 🔥 EDIT
 function editProduct(id, name, price, image, category){
   editId = id;
 
@@ -166,6 +192,7 @@ function editProduct(id, name, price, image, category){
   document.getElementById("category").value = category;
 }
 
+// 🔥 UPDATE
 function updateProduct(){
   if(!editId){
     alert("Klik EDIT dulu!");
@@ -185,6 +212,7 @@ function updateProduct(){
   });
 }
 
+// 🔥 CLEAR
 function clearForm(){
   document.getElementById("name").value = "";
   document.getElementById("price").value = "";
