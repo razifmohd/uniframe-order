@@ -21,7 +21,7 @@
       text-align: center;
     }
 
-    /* 🔥 GRID LAYOUT */
+    /* 🔥 GRID */
     #products {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -39,11 +39,13 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.4);
     }
 
-    /* 🔥 GAMBAR COMPACT */
+    /* 🔥 GAMBAR 1:1 FIX */
     .product img {
       width: 100%;
-      height: 140px;
+      aspect-ratio: 1 / 1;
       object-fit: cover;
+      object-position: center;
+      display: block;
     }
 
     .info {
@@ -70,6 +72,7 @@
       width: 100%;
       font-size: 12px;
       font-weight: bold;
+      cursor: pointer;
     }
 
     .checkout {
@@ -142,6 +145,7 @@ let total = 0;
 // 🔥 LOAD PRODUK
 db.collection("products").get().then(snapshot => {
   const container = document.getElementById("products");
+  container.innerHTML = "";
 
   snapshot.forEach(doc => {
     let p = doc.data();
@@ -151,6 +155,8 @@ db.collection("products").get().then(snapshot => {
     if(p.images && p.images.length > 0){
       let index = p.coverIndex || 0;
       image = p.images[index];
+    } else if(p.image){
+      image = p.image;
     } else {
       image = "https://via.placeholder.com/300";
     }
@@ -161,8 +167,8 @@ db.collection("products").get().then(snapshot => {
     div.innerHTML = `
       <img src="${image}">
       <div class="info">
-        <h3>${p.name}</h3>
-        <div class="price">RM${p.price}</div>
+        <h3>${p.name || "No Name"}</h3>
+        <div class="price">RM${p.price || 0}</div>
         <button onclick="add('${p.name}',${p.price})">Add</button>
       </div>
     `;
@@ -195,7 +201,8 @@ function submitOrder(){
     name, phone, address, items: cart, total
   });
 
-  window.open("https://wa.me/60179891664");
+  let msg = `Order baru\nNama: ${name}\nPhone: ${phone}\nTotal: RM${total}`;
+  window.open("https://wa.me/60179891664?text=" + encodeURIComponent(msg));
 
   cart = [];
   total = 0;
