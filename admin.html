@@ -1,3 +1,4 @@
+COPY & REPLACE SEMUA
 <!DOCTYPE html>
 <html>
 <head>
@@ -24,17 +25,25 @@
       padding: 15px;
       border-radius: 12px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      overflow: hidden;
     }
 
+    /* 🔥 FIX SQUARE IMAGE (NO STRETCH) */
     .slider {
       position: relative;
+      width: 100%;
+      padding-top: 100%;
+      overflow: hidden;
+      border-radius: 10px;
     }
 
     .slider img {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
-      aspect-ratio: 1 / 1;
+      height: 100%;
       object-fit: cover;
-      border-radius: 10px;
     }
 
     .slider button {
@@ -47,6 +56,7 @@
       padding: 5px 10px;
       cursor: pointer;
       border-radius: 5px;
+      z-index: 2;
     }
 
     .prev { left: 5px; }
