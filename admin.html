@@ -8,7 +8,6 @@
       font-family: Arial;
       background: #0f0f0f;
       color: white;
-      margin: 0;
       padding: 20px;
     }
 
@@ -61,14 +60,14 @@
       font-weight: bold;
     }
 
-    /* 🔥 UPLOAD BOX */
+    /* upload box */
     .upload-box {
       border: 2px dashed #555;
       border-radius: 12px;
       padding: 20px;
       text-align: center;
-      margin-top: 10px;
       cursor: pointer;
+      margin-top: 10px;
     }
 
     .upload-box:hover {
@@ -76,10 +75,10 @@
     }
 
     #preview {
+      display: none;
       margin-top: 10px;
       max-width: 100%;
       border-radius: 10px;
-      display: none;
     }
   </style>
 </head>
@@ -126,7 +125,7 @@ const db = firebase.firestore();
 let editId = null;
 let selectedFile = null;
 
-// 🔥 DRAG & DROP LOGIC
+// 🔥 DRAG DROP
 const uploadBox = document.getElementById("uploadBox");
 const fileInput = document.getElementById("imageFile");
 const preview = document.getElementById("preview");
@@ -161,7 +160,7 @@ function handleFile(file){
   reader.readAsDataURL(file);
 }
 
-// 🔥 ADD PRODUCT (IMG BB)
+// 🔥 ADD PRODUCT
 function addProduct(){
 
   let name = document.getElementById("name").value;
@@ -191,10 +190,13 @@ function addProduct(){
       let imageUrl = data.data.url;
 
       db.collection("products").add({
-        name, price, category,
+        name,
+        price,
+        category,
         image: imageUrl,
         active: true
       }).then(() => {
+        alert("Produk tambah!");
         clearForm();
         loadProducts();
       });
@@ -220,7 +222,7 @@ function loadProducts(){
       div.innerHTML = `
         <img src="${p.image}">
         <h4>${p.name}</h4>
-        <div>${p.category}</div>
+        <div>${p.category || "-"}</div>
         <div class="price">RM${p.price}</div>
 
         <button class="edit-btn" onclick="editProduct('${doc.id}', '${p.name}', ${p.price}, '${p.category}')">Edit</button>
@@ -258,7 +260,9 @@ function updateProduct(){
   let category = document.getElementById("category").value;
 
   db.collection("products").doc(editId).update({
-    name, price, category
+    name,
+    price,
+    category
   }).then(() => {
     editId = null;
     clearForm();
