@@ -28,12 +28,14 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.4);
     }
 
+    /* 🔥 FIX GAMBAR */
     .product img {
       width: 100%;
-      height: 180px;
+      aspect-ratio: 1 / 1;
       object-fit: cover;
       border-radius: 10px;
       margin-bottom: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
 
     .price {
@@ -62,6 +64,7 @@
       border-top: 1px solid #222;
       display: flex;
       justify-content: space-between;
+      align-items: center;
     }
 
     #checkoutForm {
@@ -110,7 +113,7 @@
 
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSyDCTH6uXY-ksrOJ0HnLN3l6tCeF1wqojhI", // ✔ FIXED
+  apiKey: "AIzaSyDCTH6uXY-ksrOJ0HnLN3l6tCeF1wqojhI",
   authDomain: "uniframe-order.firebaseapp.com",
   projectId: "uniframe-order"
 };
@@ -121,7 +124,7 @@ const db = firebase.firestore();
 let cart = [];
 let total = 0;
 
-// 🔥 LOAD PRODUK
+// 🔥 LOAD PRODUK DARI FIREBASE
 db.collection("products").get().then(snapshot => {
   const container = document.getElementById("products");
   container.innerHTML = "";
