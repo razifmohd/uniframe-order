@@ -44,6 +44,20 @@
       border-radius:10px;
     }
 
+    .gallery {
+      display:flex;
+      gap:5px;
+      flex-wrap:wrap;
+      margin-bottom:8px;
+    }
+
+    .gallery img {
+      width:70px;
+      height:70px;
+      object-fit:cover;
+      border-radius:8px;
+    }
+
     button {
       padding:10px;
       border:none;
@@ -172,9 +186,14 @@ function loadProducts(){
       div.className = "product";
 
       div.innerHTML = `
-        <${p.images ? p.images.map(img => `   <img src="${img}" width="80" style="margin:5px;border-radius:6px;"> `).join("") : ""} width="100">
-        <br>
+        <div class="gallery">
+          ${p.images ? p.images.map(img => `
+            <img src="${img}">
+          `).join("") : ""}
+        </div>
+
         ${p.name} - RM${p.price}
+
         <button class="delete" onclick="deleteProduct('${doc.id}')">Delete</button>
       `;
 
