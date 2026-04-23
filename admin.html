@@ -51,11 +51,33 @@
       margin-bottom:8px;
     }
 
-    .gallery img {
+    .img-box {
+      position:relative;
+      cursor:pointer;
+    }
+
+    .img-box img {
       width:70px;
       height:70px;
       object-fit:cover;
       border-radius:8px;
+      border:2px solid #333;
+    }
+
+    .cover {
+      border:3px solid lime !important;
+    }
+
+    .label {
+      position:absolute;
+      bottom:0;
+      left:0;
+      right:0;
+      background:lime;
+      color:black;
+      font-size:10px;
+      text-align:center;
+      border-radius:0 0 8px 8px;
     }
 
     button {
@@ -166,14 +188,18 @@ async function addProduct(){
   }
 
   await db.collection("products").add({
-    name, price, category, images:imageUrls
+    name,
+    price,
+    category,
+    images: imageUrls,
+    coverIndex: 0 // default first image jadi cover
   });
 
   alert("Produk tambah!");
   location.reload();
 }
 
-// 🔥 LOAD PRODUK DALAM ADMIN
+// 🔥 LOAD PRODUK
 function loadProducts(){
   const list = document.getElementById("productList");
   list.innerHTML = "";
@@ -181,14 +207,19 @@ function loadProducts(){
   db.collection("products").get().then(snapshot=>{
     snapshot.forEach(doc=>{
       let p = doc.data();
+      let coverIndex = p.coverIndex || 0;
 
       let div = document.createElement("div");
       div.className = "product";
 
       div.innerHTML = `
         <div class="gallery">
-          ${p.images ? p.images.map(img => `
-            <img src="${img}">
+          ${p.images ? p.images.map((img, index) => `
+            <div class="img-box" onclick="setCover('${doc.id}', ${index})">
+              <img src="${img}" class="${index===coverIndex ? 'cover' : ''}">
+              
+              ${index===coverIndex ? `<div class="label">COVER</div>` : ""}
+            </div>
           `).join("") : ""}
         </div>
 
@@ -199,6 +230,15 @@ function loadProducts(){
 
       list.appendChild(div);
     });
+  });
+}
+
+// 🔥 SET COVER
+function setCover(id, index){
+  db.collection("products").doc(id).update({
+    coverIndex: index
+  }).then(()=>{
+    loadProducts();
   });
 }
 
