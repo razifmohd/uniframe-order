@@ -25,6 +25,7 @@
       margin: 12px;
       padding: 18px;
       border-radius: 14px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
     }
 
     .product img {
@@ -38,16 +39,18 @@
     .price {
       color: #ffcc00;
       font-weight: bold;
+      margin-bottom: 10px;
     }
 
     button {
-      background: #ffcc00;
+      background: linear-gradient(135deg, #ffcc00, #ffaa00);
       border: none;
       padding: 12px;
       border-radius: 10px;
       width: 100%;
       margin-top: 10px;
       font-weight: bold;
+      cursor: pointer;
     }
 
     .checkout {
@@ -56,6 +59,7 @@
       width: 100%;
       background: #000;
       padding: 15px;
+      border-top: 1px solid #222;
       display: flex;
       justify-content: space-between;
     }
@@ -67,6 +71,7 @@
       width: 100%;
       background: #111;
       padding: 15px;
+      border-top: 2px solid #ffcc00;
     }
 
     input, textarea {
@@ -97,7 +102,7 @@
   <input id="custName" placeholder="Nama">
   <input id="custPhone" placeholder="No Phone">
   <textarea id="custAddress" placeholder="Alamat"></textarea>
-  <button onclick="submitOrder()">Confirm</button>
+  <button onclick="submitOrder()">Confirm Order</button>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -105,7 +110,7 @@
 
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSyDCTH6uXY-ksrOJ0HnLN3l6tCeF1wqojhI",
+  apiKey: "AIzaSyDCTH6uXY-ksrOJ0HnLN3l6tCeF1wqojhI", // ✔ FIXED
   authDomain: "uniframe-order.firebaseapp.com",
   projectId: "uniframe-order"
 };
@@ -116,9 +121,10 @@ const db = firebase.firestore();
 let cart = [];
 let total = 0;
 
-// 🔥 LOAD PRODUK DARI FIREBASE
+// 🔥 LOAD PRODUK
 db.collection("products").get().then(snapshot => {
   const container = document.getElementById("products");
+  container.innerHTML = "";
 
   snapshot.forEach(doc => {
     let p = doc.data();
@@ -128,6 +134,8 @@ db.collection("products").get().then(snapshot => {
     if(p.images && p.images.length > 0){
       let index = p.coverIndex || 0;
       image = p.images[index];
+    } else if(p.image){
+      image = p.image;
     } else {
       image = "https://via.placeholder.com/300";
     }
@@ -137,8 +145,8 @@ db.collection("products").get().then(snapshot => {
 
     div.innerHTML = `
       <img src="${image}">
-      <h3>${p.name}</h3>
-      <div class="price">RM${p.price}</div>
+      <h3>${p.name || "No Name"}</h3>
+      <div class="price">RM${p.price || 0}</div>
       <button onclick="add('${p.name}',${p.price})">Add to Cart</button>
     `;
 
@@ -170,7 +178,8 @@ function submitOrder(){
     name, phone, address, items: cart, total
   });
 
-  window.open("https://wa.me/60179891664");
+  let msg = `Order baru\nNama: ${name}\nPhone: ${phone}\nTotal: RM${total}`;
+  window.open("https://wa.me/60179891664?text=" + encodeURIComponent(msg));
 
   cart = [];
   total = 0;
