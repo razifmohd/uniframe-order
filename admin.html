@@ -29,18 +29,19 @@
       border-radius:10px;
     }
 
-    #preview {
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      margin-top:10px;
-    }
-
     #preview img {
       width:80px;
       height:80px;
       object-fit:cover;
+      margin:5px;
       border-radius:8px;
+    }
+
+    .product {
+      background:#1a1a1a;
+      padding:10px;
+      margin-top:10px;
+      border-radius:10px;
     }
 
     button {
@@ -51,6 +52,10 @@
       width:100%;
       background:#ffcc00;
       font-weight:bold;
+    }
+
+    .delete {
+      background:red;
     }
   </style>
 </head>
@@ -71,6 +76,11 @@
 <div id="preview"></div>
 
 <button onclick="addProduct()">Add Product</button>
+
+<hr>
+
+<h3>Senarai Produk</h3>
+<div id="productList"></div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -113,31 +123,6 @@ function handleFiles(selected){
   });
 }
 
-// compress
-function compressImage(file){
-  return new Promise(resolve=>{
-    let img = new Image();
-    let reader = new FileReader();
-
-    reader.onload = e => img.src = e.target.result;
-
-    img.onload = ()=>{
-      let canvas = document.createElement("canvas");
-      let ctx = canvas.getContext("2d");
-
-      let scale = 800 / img.width;
-      canvas.width = 800;
-      canvas.height = img.height * scale;
-
-      ctx.drawImage(img,0,0,canvas.width,canvas.height);
-
-      canvas.toBlob(blob=>resolve(blob),"image/jpeg",0.7);
-    };
-
-    reader.readAsDataURL(file);
-  });
-}
-
 async function addProduct(){
 
   let name = document.getElementById("name").value;
@@ -153,12 +138,8 @@ async function addProduct(){
 
   for(let i=0;i<files.length;i++){
 
-    let compressed = await compressImage(files[i]);
-
-    let base64 = await blobToBase64(compressed);
-
     let formData = new FormData();
-    formData.append("image", base64.split(',')[1]);
+    formData.append("image", files[i]);
 
     let res = await fetch("https://api.imgbb.com/1/upload?key=682bdd4f17d96ffb219da4dcc3c4b2c4",{
       method:"POST",
@@ -170,21 +151,47 @@ async function addProduct(){
     imageUrls.push(data.data.url);
   }
 
-  db.collection("products").add({
+  await db.collection("products").add({
     name, price, category, images:imageUrls
-  }).then(()=>{
-    alert("Produk tambah!");
-    location.reload();
+  });
+
+  alert("Produk tambah!");
+  location.reload();
+}
+
+// 🔥 LOAD PRODUK DALAM ADMIN
+function loadProducts(){
+  const list = document.getElementById("productList");
+  list.innerHTML = "";
+
+  db.collection("products").get().then(snapshot=>{
+    snapshot.forEach(doc=>{
+      let p = doc.data();
+
+      let div = document.createElement("div");
+      div.className = "product";
+
+      div.innerHTML = `
+        <img src="${p.images ? p.images[0] : ''}" width="100">
+        <br>
+        ${p.name} - RM${p.price}
+        <button class="delete" onclick="deleteProduct('${doc.id}')">Delete</button>
+      `;
+
+      list.appendChild(div);
+    });
   });
 }
 
-function blobToBase64(blob){
-  return new Promise(resolve=>{
-    let reader = new FileReader();
-    reader.onload = ()=>resolve(reader.result);
-    reader.readAsDataURL(blob);
-  });
+function deleteProduct(id){
+  if(confirm("Delete produk ni?")){
+    db.collection("products").doc(id).delete().then(()=>{
+      loadProducts();
+    });
+  }
 }
+
+loadProducts();
 </script>
 
 </body>
