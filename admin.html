@@ -27,7 +27,7 @@
       overflow: hidden;
     }
 
-    /* 🔥 SQUARE CONTAINER */
+    /* square container */
     .slider {
       position: relative;
       width: 100%;
@@ -37,7 +37,6 @@
       background: #1a1a1a;
     }
 
-    /* 🔥 FIX: NO ZOOM, NO CROP */
     .slider img {
       position: absolute;
       top: 0;
@@ -120,6 +119,18 @@ function checkout(){
   window.open(url, "_blank");
 }
 
+// 🔥 AUTO FIX IMAGE LINK
+function fixImage(url){
+  if(!url) return "https://via.placeholder.com/300";
+
+  // convert ibb preview → direct image
+  if(url.includes("ibb.co")){
+    return url.replace("https://ibb.co/", "https://i.ibb.co/");
+  }
+
+  return url;
+}
+
 // 🔥 LOAD PRODUCTS
 function loadProducts(){
 
@@ -131,7 +142,17 @@ function loadProducts(){
     snapshot.forEach(doc => {
       let p = doc.data();
 
-      let images = p.images || [p.image];
+      // SUPPORT OLD + NEW
+      let images = [];
+
+      if(p.images && p.images.length > 0){
+        images = p.images.map(fixImage);
+      } else if(p.image){
+        images = [fixImage(p.image)];
+      } else {
+        images = ["https://via.placeholder.com/300"];
+      }
+
       let currentIndex = 0;
 
       let div = document.createElement("div");
