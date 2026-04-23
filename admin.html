@@ -47,11 +47,6 @@
       border-radius: 12px;
       padding: 10px;
       text-align: center;
-      transition: 0.2s;
-    }
-
-    .card:hover {
-      transform: scale(1.03);
     }
 
     img {
@@ -65,6 +60,27 @@
       color: #ffcc00;
       font-weight: bold;
     }
+
+    /* 🔥 UPLOAD BOX */
+    .upload-box {
+      border: 2px dashed #555;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+
+    .upload-box:hover {
+      background: #1a1a1a;
+    }
+
+    #preview {
+      margin-top: 10px;
+      max-width: 100%;
+      border-radius: 10px;
+      display: none;
+    }
   </style>
 </head>
 
@@ -75,7 +91,13 @@
 <input id="name" placeholder="Nama produk">
 <input id="price" placeholder="Harga">
 <input id="category" placeholder="Kategori">
-<input type="file" id="imageFile">
+
+<!-- 🔥 DRAG & DROP -->
+<div class="upload-box" id="uploadBox">
+  Drag & Drop gambar atau klik sini
+  <input type="file" id="imageFile" style="display:none;">
+  <img id="preview">
+</div>
 
 <button class="add-btn" onclick="addProduct()">Add Product</button>
 <button class="update-btn" onclick="updateProduct()">Update Product</button>
@@ -102,16 +124,51 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 let editId = null;
+let selectedFile = null;
 
-// 🔥 ADD PRODUCT (IMG BB UPLOAD)
+// 🔥 DRAG & DROP LOGIC
+const uploadBox = document.getElementById("uploadBox");
+const fileInput = document.getElementById("imageFile");
+const preview = document.getElementById("preview");
+
+uploadBox.onclick = () => fileInput.click();
+
+fileInput.onchange = e => handleFile(e.target.files[0]);
+
+uploadBox.ondragover = e => {
+  e.preventDefault();
+  uploadBox.style.background = "#222";
+};
+
+uploadBox.ondragleave = () => {
+  uploadBox.style.background = "";
+};
+
+uploadBox.ondrop = e => {
+  e.preventDefault();
+  uploadBox.style.background = "";
+  handleFile(e.dataTransfer.files[0]);
+};
+
+function handleFile(file){
+  selectedFile = file;
+
+  let reader = new FileReader();
+  reader.onload = function(e){
+    preview.src = e.target.result;
+    preview.style.display = "block";
+  };
+  reader.readAsDataURL(file);
+}
+
+// 🔥 ADD PRODUCT (IMG BB)
 function addProduct(){
 
   let name = document.getElementById("name").value;
   let price = parseInt(document.getElementById("price").value);
   let category = document.getElementById("category").value;
-  let file = document.getElementById("imageFile").files[0];
 
-  if(!name || !price || !category || !file){
+  if(!name || !price || !category || !selectedFile){
     alert("Isi semua field!");
     return;
   }
@@ -134,13 +191,10 @@ function addProduct(){
       let imageUrl = data.data.url;
 
       db.collection("products").add({
-        name,
-        price,
-        category,
+        name, price, category,
         image: imageUrl,
         active: true
       }).then(() => {
-        alert("Produk tambah!");
         clearForm();
         loadProducts();
       });
@@ -148,10 +202,10 @@ function addProduct(){
     });
   };
 
-  reader.readAsDataURL(file);
+  reader.readAsDataURL(selectedFile);
 }
 
-// 🔥 LOAD PRODUCT
+// 🔥 LOAD
 function loadProducts(){
   const list = document.getElementById("productList");
   list.innerHTML = "";
@@ -169,7 +223,7 @@ function loadProducts(){
         <div>${p.category}</div>
         <div class="price">RM${p.price}</div>
 
-        <button class="edit-btn" onclick="editProduct('${doc.id}', '${p.name}', ${p.price}, '${p.image}', '${p.category}')">Edit</button>
+        <button class="edit-btn" onclick="editProduct('${doc.id}', '${p.name}', ${p.price}, '${p.category}')">Edit</button>
         <button class="delete-btn" onclick="deleteProduct('${doc.id}')">Delete</button>
       `;
 
@@ -184,7 +238,7 @@ function deleteProduct(id){
 }
 
 // 🔥 EDIT
-function editProduct(id, name, price, image, category){
+function editProduct(id, name, price, category){
   editId = id;
 
   document.getElementById("name").value = name;
@@ -217,7 +271,8 @@ function clearForm(){
   document.getElementById("name").value = "";
   document.getElementById("price").value = "";
   document.getElementById("category").value = "";
-  document.getElementById("imageFile").value = "";
+  preview.style.display = "none";
+  selectedFile = null;
 }
 
 loadProducts();
