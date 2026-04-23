@@ -172,7 +172,7 @@ function loadProducts(){
       div.className = "product";
 
       div.innerHTML = `
-        <img src="${p.images ? p.images[0] : ''}" width="100">
+        <${p.images ? p.images.map(img => `   <img src="${img}" width="80" style="margin:5px;border-radius:6px;"> `).join("") : ""} width="100">
         <br>
         ${p.name} - RM${p.price}
         <button class="delete" onclick="deleteProduct('${doc.id}')">Delete</button>
