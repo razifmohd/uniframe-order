@@ -1,110 +1,109 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Uniframe Order</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Uniframe</title>
 
-  <style>
-    body {
-      font-family: Arial;
-      margin: 0;
-      background: #0f0f0f;
-      color: white;
-    }
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0f0f0f;
+  color:white;
+}
 
-    .header {
-      padding: 16px;
-      font-size: 20px;
-      font-weight: bold;
-      background: #000;
-      border-bottom: 1px solid #222;
-      text-align: center;
-    }
+.header{
+  padding:16px;
+  text-align:center;
+  background:#000;
+  font-weight:bold;
+}
 
-    /* 🔥 GRID */
-    #products {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-      padding: 10px;
-      padding-bottom: 100px;
-      max-width: 600px;
-      margin: auto;
-    }
+/* 🔥 RESPONSIVE GRID */
+#products{
+  display:grid;
+  grid-template-columns: 1fr; /* mobile 1 column */
+  gap:12px;
+  padding:12px;
+}
 
-    .product {
-      background: #1a1a1a;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-    }
+@media(min-width:600px){
+  #products{
+    grid-template-columns: repeat(2,1fr);
+    max-width:700px;
+    margin:auto;
+  }
+}
 
-    /* 🔥 GAMBAR 1:1 FIX */
-    .product img {
-      width: 100%;
-      aspect-ratio: 1 / 1;
-      object-fit: cover;
-      object-position: center;
-      display: block;
-    }
+.product{
+  background:#1a1a1a;
+  border-radius:12px;
+  overflow:hidden;
+  box-shadow:0 4px 10px rgba(0,0,0,0.4);
+}
 
-    .info {
-      padding: 10px;
-    }
+/* 🔥 SLIDER */
+.slider{
+  position:relative;
+  width:100%;
+  aspect-ratio:1/1;
+  overflow:hidden;
+}
 
-    .info h3 {
-      margin: 0;
-      font-size: 14px;
-    }
+.slide{
+  position:absolute;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  opacity:0;
+  transition:0.3s;
+}
 
-    .price {
-      color: #ffcc00;
-      font-weight: bold;
-      font-size: 14px;
-      margin: 5px 0;
-    }
+.slide.active{
+  opacity:1;
+}
 
-    button {
-      background: #ffcc00;
-      border: none;
-      padding: 8px;
-      border-radius: 8px;
-      width: 100%;
-      font-size: 12px;
-      font-weight: bold;
-      cursor: pointer;
-    }
+.info{
+  padding:12px;
+}
 
-    .checkout {
-      position: fixed;
-      bottom: 0;
-      width: 100%;
-      background: #000;
-      padding: 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+.title{
+  font-size:16px;
+  font-weight:bold;
+}
 
-    #checkoutForm {
-      display: none;
-      position: fixed;
-      bottom: 0;
-      width: 100%;
-      background: #111;
-      padding: 15px;
-    }
+.price{
+  color:#ffcc00;
+  margin:6px 0;
+  font-weight:bold;
+}
 
-    input, textarea {
-      width: 100%;
-      padding: 8px;
-      margin: 5px 0;
-      border-radius: 8px;
-      border: none;
-      background: #222;
-      color: white;
-    }
-  </style>
+.desc{
+  font-size:13px;
+  color:#ccc;
+  margin-bottom:8px;
+}
+
+button{
+  width:100%;
+  padding:10px;
+  background:#ffcc00;
+  border:none;
+  border-radius:8px;
+  font-weight:bold;
+}
+
+/* checkout */
+.checkout{
+  position:fixed;
+  bottom:0;
+  width:100%;
+  background:#000;
+  padding:12px;
+  display:flex;
+  justify-content:space-between;
+}
+</style>
 </head>
 
 <body>
@@ -118,57 +117,49 @@
   <button onclick="checkout()">Checkout</button>
 </div>
 
-<div id="checkoutForm">
-  <h3>Maklumat Customer</h3>
-  <input id="custName" placeholder="Nama">
-  <input id="custPhone" placeholder="No Phone">
-  <textarea id="custAddress" placeholder="Alamat"></textarea>
-  <button onclick="submitOrder()">Confirm</button>
-</div>
-
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyDCTH6uXY-ksrOJ0HnLN3l6tCeF1wqojhI",
-  authDomain: "uniframe-order.firebaseapp.com",
-  projectId: "uniframe-order"
+const firebaseConfig={
+  apiKey:"AIzaSyDCTH6uXY-ksrOJ0HnLN3l6tCeF1wqojhI",
+  authDomain:"uniframe-order.firebaseapp.com",
+  projectId:"uniframe-order"
 };
 
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+const db=firebase.firestore();
 
-let cart = [];
-let total = 0;
+let cart=[];
+let total=0;
 
-// 🔥 LOAD PRODUK
-db.collection("products").get().then(snapshot => {
-  const container = document.getElementById("products");
-  container.innerHTML = "";
+/* 🔥 LOAD PRODUK */
+db.collection("products").get().then(snapshot=>{
+  const container=document.getElementById("products");
 
-  snapshot.forEach(doc => {
-    let p = doc.data();
+  snapshot.forEach(doc=>{
+    let p=doc.data();
 
-    let image = "";
+    let slides="";
 
-    if(p.images && p.images.length > 0){
-      let index = p.coverIndex || 0;
-      image = p.images[index];
-    } else if(p.image){
-      image = p.image;
-    } else {
-      image = "https://via.placeholder.com/300";
+    if(p.images && p.images.length>0){
+      slides=p.images.map((img,i)=>`
+        <img src="${img}" class="slide ${i===0?'active':''}">
+      `).join("");
     }
 
-    let div = document.createElement("div");
-    div.className = "product";
+    let div=document.createElement("div");
+    div.className="product";
 
-    div.innerHTML = `
-      <img src="${image}">
+    div.innerHTML=`
+      <div class="slider" onclick="nextSlide(this)">
+        ${slides}
+      </div>
+
       <div class="info">
-        <h3>${p.name || "No Name"}</h3>
+        <div class="title">${p.name || ''}</div>
         <div class="price">RM${p.price || 0}</div>
+        <div class="desc">${p.description || ''}</div>
         <button onclick="add('${p.name}',${p.price})">Add</button>
       </div>
     `;
@@ -177,36 +168,31 @@ db.collection("products").get().then(snapshot => {
   });
 });
 
-function add(name, price){
-  cart.push({name, price});
-  total += price;
-  document.getElementById("total").innerText = total;
+/* 🔥 SLIDE FUNCTION */
+function nextSlide(el){
+  let slides=el.querySelectorAll(".slide");
+  let current=0;
+
+  slides.forEach((s,i)=>{
+    if(s.classList.contains("active")){
+      s.classList.remove("active");
+      current=i;
+    }
+  });
+
+  let next=(current+1)%slides.length;
+  slides[next].classList.add("active");
+}
+
+/* CART */
+function add(name,price){
+  cart.push({name,price});
+  total+=price;
+  document.getElementById("total").innerText=total;
 }
 
 function checkout(){
-  document.getElementById("checkoutForm").style.display = "block";
-}
-
-function submitOrder(){
-  let name = document.getElementById("custName").value;
-  let phone = document.getElementById("custPhone").value;
-  let address = document.getElementById("custAddress").value;
-
-  if(!name || !phone || !address){
-    alert("Isi semua");
-    return;
-  }
-
-  db.collection("orders").add({
-    name, phone, address, items: cart, total
-  });
-
-  let msg = `Order baru\nNama: ${name}\nPhone: ${phone}\nTotal: RM${total}`;
-  window.open("https://wa.me/60179891664?text=" + encodeURIComponent(msg));
-
-  cart = [];
-  total = 0;
-  document.getElementById("total").innerText = 0;
+  alert("Proceed WhatsApp nanti kita upgrade 😎");
 }
 </script>
 
