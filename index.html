@@ -19,6 +19,7 @@ body{
   font-weight:bold;
 }
 
+/* GRID */
 #products{
   display:grid;
   grid-template-columns:1fr;
@@ -40,23 +41,26 @@ body{
   overflow:hidden;
 }
 
+/* SLIDER */
 .slider{
   overflow:hidden;
   position:relative;
   aspect-ratio:1/1;
+  touch-action:pan-y;
 }
 
 .slides{
   display:flex;
-  transition:0.3s;
+  transition:transform 0.35s ease;
 }
 
 .slides img{
   width:100%;
+  flex-shrink:0;
   object-fit:cover;
-  cursor:pointer;
 }
 
+/* DOTS */
 .dots{
   position:absolute;
   bottom:8px;
@@ -77,6 +81,7 @@ body{
   background:#ffcc00;
 }
 
+/* ZOOM */
 .zoom{
   position:fixed;
   top:0;
@@ -87,13 +92,16 @@ body{
   display:none;
   justify-content:center;
   align-items:center;
+  overflow:hidden;
 }
 
 .zoom img{
   width:100%;
-  max-width:600px;
+  max-width:700px;
+  transition:transform 0.2s;
 }
 
+/* INFO */
 .info{
   padding:12px;
 }
@@ -158,31 +166,25 @@ db.collection("products").get().then(snapshot=>{
     let div=document.createElement("div");
     div.className="product";
 
-    // SLIDES
-    let slides=document.createElement("div");
-    slides.className="slides";
-    slides.id="slides-"+id;
-
-    images.forEach(img=>{
-      let image=document.createElement("img");
-      image.src=img;
-
-      // 🔥 SAFE CLICK
-      image.addEventListener("click",()=>{
-        openZoom(img);
-      });
-
-      slides.appendChild(image);
-    });
-
     let slider=document.createElement("div");
     slider.className="slider";
+
+    let slides=document.createElement("div");
+    slides.className="slides";
+
+    images.forEach(img=>{
+      let im=document.createElement("img");
+      im.src=img;
+
+      im.onclick=()=>openZoom(img);
+
+      slides.appendChild(im);
+    });
+
     slider.appendChild(slides);
 
-    // DOTS
     let dots=document.createElement("div");
     dots.className="dots";
-    dots.id="dots-"+id;
 
     images.forEach((_,i)=>{
       let d=document.createElement("span");
@@ -192,12 +194,40 @@ db.collection("products").get().then(snapshot=>{
 
     slider.appendChild(dots);
 
-    // SWIPE
-    slider.addEventListener("touchstart",e=>startSwipe(e,id));
-    slider.addEventListener("touchmove",e=>moveSwipe(e,id));
-    slider.addEventListener("touchend",()=>endSwipe(id));
+    /* 🔥 SWIPE ENGINE */
+    let index=0,startX=0,currentX=0,isDragging=false;
 
-    // INFO
+    slider.addEventListener("touchstart",e=>{
+      isDragging=true;
+      startX=e.touches[0].clientX;
+      slides.style.transition="none";
+    });
+
+    slider.addEventListener("touchmove",e=>{
+      if(!isDragging) return;
+      currentX=e.touches[0].clientX-startX;
+      slides.style.transform=`translateX(${currentX - index*slider.offsetWidth}px)`;
+    });
+
+    slider.addEventListener("touchend",()=>{
+      isDragging=false;
+
+      if(currentX<-50) index++;
+      if(currentX>50) index--;
+
+      if(index<0) index=0;
+      if(index>=images.length) index=images.length-1;
+
+      slides.style.transition="transform 0.35s ease";
+      slides.style.transform=`translateX(-${index*100}%)`;
+
+      // update dots
+      dots.querySelectorAll(".dot").forEach(d=>d.classList.remove("active"));
+      if(dots.children[index]) dots.children[index].classList.add("active");
+
+      currentX=0;
+    });
+
     let info=document.createElement("div");
     info.className="info";
     info.innerHTML=`
@@ -207,10 +237,7 @@ db.collection("products").get().then(snapshot=>{
 
     let btn=document.createElement("button");
     btn.innerText="Add";
-
-    btn.addEventListener("click",(e)=>{
-      add(p.name,p.price,e);
-    });
+    btn.onclick=()=>add(p.name,p.price);
 
     info.appendChild(btn);
 
@@ -221,60 +248,31 @@ db.collection("products").get().then(snapshot=>{
   });
 });
 
-/* swipe */
-let swipeData={};
-
-function startSwipe(e,id){
-  swipeData[id]={startX:e.touches[0].clientX,index:swipeData[id]?.index||0};
-}
-
-function moveSwipe(e,id){
-  let data=swipeData[id];
-  let diff=e.touches[0].clientX-data.startX;
-
-  let slides=document.getElementById("slides-"+id);
-  slides.style.transform=`translateX(${diff - data.index*100}%)`;
-}
-
-function endSwipe(id){
-  let data=swipeData[id];
-  let slides=document.getElementById("slides-"+id);
-  let dots=document.getElementById("dots-"+id).children;
-
-  let match = slides.style.transform.match(/-?\d+/);
-  let diff = match ? parseInt(match[0]) : 0;
-
-  if(diff<-50) data.index++;
-  if(diff>50) data.index--;
-
-  let max=slides.children.length-1;
-  if(data.index<0) data.index=0;
-  if(data.index>max) data.index=max;
-
-  slides.style.transform=`translateX(-${data.index*100}%)`;
-
-  for(let i=0;i<dots.length;i++){
-    dots[i].classList.remove("active");
-  }
-  if(dots[data.index]) dots[data.index].classList.add("active");
-
-  swipeData[id]=data;
-}
-
-/* zoom */
-const zoomBox=document.getElementById("zoomBox");
-const zoomImg=document.getElementById("zoomImg");
+/* ZOOM + PINCH */
+let scale=1;
 
 function openZoom(src){
   zoomImg.src=src;
   zoomBox.style.display="flex";
+  scale=1;
+  zoomImg.style.transform="scale(1)";
 }
 
-zoomBox.addEventListener("click",()=>{
-  zoomBox.style.display="none";
+zoomBox.addEventListener("touchmove",e=>{
+  if(e.touches.length===2){
+    let dist=Math.hypot(
+      e.touches[0].clientX-e.touches[1].clientX,
+      e.touches[0].clientY-e.touches[1].clientY
+    );
+
+    scale=Math.min(Math.max(dist/200,1),3);
+    zoomImg.style.transform=`scale(${scale})`;
+  }
 });
 
-/* cart */
+zoomBox.onclick=()=>zoomBox.style.display="none";
+
+/* CART */
 function add(name,price){
   total+=price;
   document.getElementById("total").innerText=total;
