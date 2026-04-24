@@ -19,10 +19,10 @@ body{
   font-weight:bold;
 }
 
-/* 🔥 RESPONSIVE GRID */
+/* 🔥 GRID */
 #products{
   display:grid;
-  grid-template-columns: 1fr; /* mobile 1 column */
+  grid-template-columns: 1fr;
   gap:12px;
   padding:12px;
 }
@@ -48,6 +48,7 @@ body{
   width:100%;
   aspect-ratio:1/1;
   overflow:hidden;
+  cursor:pointer;
 }
 
 .slide{
@@ -61,6 +62,27 @@ body{
 
 .slide.active{
   opacity:1;
+}
+
+/* indicator dots */
+.dots{
+  position:absolute;
+  bottom:8px;
+  width:100%;
+  text-align:center;
+}
+
+.dot{
+  display:inline-block;
+  width:6px;
+  height:6px;
+  margin:0 2px;
+  background:#aaa;
+  border-radius:50%;
+}
+
+.dot.active{
+  background:#ffcc00;
 }
 
 .info{
@@ -136,15 +158,21 @@ let total=0;
 /* 🔥 LOAD PRODUK */
 db.collection("products").get().then(snapshot=>{
   const container=document.getElementById("products");
+  container.innerHTML = ""; // 🔥 clear dulu
 
   snapshot.forEach(doc=>{
     let p=doc.data();
 
     let slides="";
+    let dots="";
 
     if(p.images && p.images.length>0){
       slides=p.images.map((img,i)=>`
         <img src="${img}" class="slide ${i===0?'active':''}">
+      `).join("");
+
+      dots=p.images.map((_,i)=>`
+        <span class="dot ${i===0?'active':''}"></span>
       `).join("");
     }
 
@@ -154,6 +182,7 @@ db.collection("products").get().then(snapshot=>{
     div.innerHTML=`
       <div class="slider" onclick="nextSlide(this)">
         ${slides}
+        <div class="dots">${dots}</div>
       </div>
 
       <div class="info">
@@ -171,17 +200,20 @@ db.collection("products").get().then(snapshot=>{
 /* 🔥 SLIDE FUNCTION */
 function nextSlide(el){
   let slides=el.querySelectorAll(".slide");
+  let dots=el.querySelectorAll(".dot");
   let current=0;
 
   slides.forEach((s,i)=>{
     if(s.classList.contains("active")){
       s.classList.remove("active");
+      dots[i].classList.remove("active");
       current=i;
     }
   });
 
   let next=(current+1)%slides.length;
   slides[next].classList.add("active");
+  dots[next].classList.add("active");
 }
 
 /* CART */
@@ -192,7 +224,7 @@ function add(name,price){
 }
 
 function checkout(){
-  alert("Proceed WhatsApp nanti kita upgrade 😎");
+  alert("Next kita sambung WhatsApp + detail order 🔥");
 }
 </script>
 
