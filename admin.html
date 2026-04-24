@@ -58,12 +58,17 @@ button{
 .delete{
   background:red;
 }
+
+.edit{
+  background:#00c3ff;
+  margin-bottom:5px;
+}
 </style>
 </head>
 
 <body>
 
-<h2>Tambah Produk</h2>
+<h2>Tambah / Edit Produk</h2>
 
 <input id="name" placeholder="Nama produk">
 <input id="price" placeholder="Harga">
@@ -76,7 +81,7 @@ button{
 
 <div id="preview"></div>
 
-<button onclick="addProduct()">Add Product</button>
+<button onclick="addProduct()" id="submitBtn">Add Product</button>
 
 <hr>
 
@@ -97,6 +102,7 @@ firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
 
 let files=[];
+let editId=null; // 🔥 track edit mode
 
 const uploadBox=document.getElementById("uploadBox");
 const fileInput=document.getElementById("fileInput");
@@ -124,46 +130,74 @@ function handleFiles(selected){
   });
 }
 
-/* 🔥 ADD PRODUCT */
+/* 🔥 ADD / UPDATE PRODUCT */
 async function addProduct(){
 
   let name=document.getElementById("name").value;
   let price=parseInt(document.getElementById("price").value);
   let desc=document.getElementById("desc").value;
 
-  if(!name || !price || files.length===0){
+  if(!name || !price){
     alert("Isi semua");
     return;
   }
 
   let imageUrls=[];
 
-  for(let i=0;i<files.length;i++){
+  // 🔥 kalau ada upload baru → upload
+  if(files.length > 0){
+    for(let i=0;i<files.length;i++){
 
-    let formData=new FormData();
-    formData.append("image",files[i]);
+      let formData=new FormData();
+      formData.append("image",files[i]);
 
-    let res=await fetch("https://api.imgbb.com/1/upload?key=682bdd4f17d96ffb219da4dcc3c4b2c4",{
-      method:"POST",
-      body:formData
-    });
+      let res=await fetch("https://api.imgbb.com/1/upload?key=682bdd4f17d96ffb219da4dcc3c4b2c4",{
+        method:"POST",
+        body:formData
+      });
 
-    let data=await res.json();
-    imageUrls.push(data.data.url);
+      let data=await res.json();
+      imageUrls.push(data.data.url);
+    }
   }
 
-  await db.collection("products").add({
-    name,
-    price,
-    description:desc,
-    images:imageUrls
-  });
+  if(editId){
+    // 🔥 UPDATE MODE
+    let updateData={
+      name,
+      price,
+      description:desc
+    };
 
-  alert("Produk tambah!");
+    if(imageUrls.length > 0){
+      updateData.images=imageUrls; // replace gambar kalau ada upload baru
+    }
+
+    await db.collection("products").doc(editId).update(updateData);
+
+    editId=null;
+    document.getElementById("submitBtn").innerText="Add Product";
+
+  }else{
+    // 🔥 ADD MODE
+    if(imageUrls.length===0){
+      alert("Upload gambar dulu");
+      return;
+    }
+
+    await db.collection("products").add({
+      name,
+      price,
+      description:desc,
+      images:imageUrls
+    });
+  }
+
+  alert("Saved!");
   location.reload();
 }
 
-/* LOAD PRODUK */
+/* 🔥 LOAD PRODUK */
 function loadProducts(){
   const list=document.getElementById("productList");
   list.innerHTML="";
@@ -178,6 +212,8 @@ function loadProducts(){
       div.innerHTML=`
         <b>${p.name}</b> - RM${p.price}<br>
         ${p.images ? p.images.map(img=>`<img src="${img}">`).join("") : ""}
+
+        <button class="edit" onclick="editProduct('${doc.id}','${p.name}',${p.price},'${p.description || ""}')">Edit</button>
         <button class="delete" onclick="deleteProduct('${doc.id}')">Delete</button>
       `;
 
@@ -186,6 +222,23 @@ function loadProducts(){
   });
 }
 
+/* 🔥 EDIT FUNCTION */
+function editProduct(id,name,price,desc){
+
+  document.getElementById("name").value=name;
+  document.getElementById("price").value=price;
+  document.getElementById("desc").value=desc;
+
+  preview.innerHTML=""; // kosongkan preview lama
+  files=[];
+
+  editId=id;
+  document.getElementById("submitBtn").innerText="Update Product";
+
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+/* DELETE */
 function deleteProduct(id){
   if(confirm("Delete produk?")){
     db.collection("products").doc(id).delete().then(()=>{
