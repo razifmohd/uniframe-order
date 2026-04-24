@@ -96,16 +96,6 @@ body{
   max-width:600px;
 }
 
-/* cart animation */
-.cart-fly{
-  position:fixed;
-  width:40px;
-  height:40px;
-  border-radius:50%;
-  z-index:999;
-  pointer-events:none;
-}
-
 .info{
   padding:12px;
 }
@@ -206,7 +196,7 @@ db.collection("products").get().then(snapshot=>{
   });
 });
 
-/* swipe per product */
+/* swipe */
 let swipeData={};
 
 function startSwipe(e,id){
@@ -224,9 +214,10 @@ function moveSwipe(e,id){
 function endSwipe(id){
   let data=swipeData[id];
   let slides=document.getElementById("slides-"+id);
-  let dots=document.getElementById("dots-"+id").children;
+  let dots=document.getElementById("dots-"+id).children;
 
-  let diff=parseInt(slides.style.transform.match(/-?\d+/))||0;
+  let match = slides.style.transform.match(/-?\d+/);
+  let diff = match ? parseInt(match[0]) : 0;
 
   if(diff<-50) data.index++;
   if(diff>50) data.index--;
@@ -240,7 +231,7 @@ function endSwipe(id){
   for(let i=0;i<dots.length;i++){
     dots[i].classList.remove("active");
   }
-  dots[data.index].classList.add("active");
+  if(dots[data.index]) dots[data.index].classList.add("active");
 
   swipeData[id]=data;
 }
@@ -254,27 +245,10 @@ function closeZoom(){
   zoomBox.style.display="none";
 }
 
-/* cart animation */
+/* cart */
 function add(name,price,e){
   total+=price;
   document.getElementById("total").innerText=total;
-
-  let img=e.target.closest(".product").querySelector("img");
-
-  let clone=img.cloneNode();
-  clone.className="cart-fly";
-  clone.style.left=img.getBoundingClientRect().left+"px";
-  clone.style.top=img.getBoundingClientRect().top+"px";
-
-  document.body.appendChild(clone);
-
-  setTimeout(()=>{
-    clone.style.left="90%";
-    clone.style.top="95%";
-    clone.style.transform="scale(0.2)";
-  },10);
-
-  setTimeout(()=>clone.remove(),600);
 }
 </script>
 
