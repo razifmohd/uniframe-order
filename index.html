@@ -40,7 +40,6 @@ body{
   overflow:hidden;
 }
 
-/* slider */
 .slider{
   overflow:hidden;
   position:relative;
@@ -55,9 +54,9 @@ body{
 .slides img{
   width:100%;
   object-fit:cover;
+  cursor:pointer;
 }
 
-/* dots */
 .dots{
   position:absolute;
   bottom:8px;
@@ -78,7 +77,6 @@ body{
   background:#ffcc00;
 }
 
-/* zoom */
 .zoom{
   position:fixed;
   top:0;
@@ -130,7 +128,7 @@ button{
   <button>Checkout</button>
 </div>
 
-<div class="zoom" id="zoomBox" onclick="closeZoom()">
+<div class="zoom" id="zoomBox">
   <img id="zoomImg">
 </div>
 
@@ -147,7 +145,6 @@ const firebaseConfig={
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
 
-let cart=[];
 let total=0;
 
 db.collection("products").get().then(snapshot=>{
@@ -156,41 +153,69 @@ db.collection("products").get().then(snapshot=>{
   snapshot.forEach(doc=>{
     let p=doc.data();
     let id=doc.id;
-
     let images=p.images || [];
-
-    let slidesHTML=images.map(img=>`
-      <img src="${img}" onclick="openZoom('${img}')">
-    `).join("");
-
-    let dotsHTML=images.map((_,i)=>`
-      <span class="dot ${i===0?'active':''}"></span>
-    `).join("");
 
     let div=document.createElement("div");
     div.className="product";
 
-    div.innerHTML=`
-      <div class="slider"
-        ontouchstart="startSwipe(event,'${id}')"
-        ontouchmove="moveSwipe(event,'${id}')"
-        ontouchend="endSwipe('${id}')">
+    // SLIDES
+    let slides=document.createElement("div");
+    slides.className="slides";
+    slides.id="slides-"+id;
 
-        <div class="slides" id="slides-${id}">
-          ${slidesHTML}
-        </div>
+    images.forEach(img=>{
+      let image=document.createElement("img");
+      image.src=img;
 
-        <div class="dots" id="dots-${id}">
-          ${dotsHTML}
-        </div>
-      </div>
+      // 🔥 SAFE CLICK
+      image.addEventListener("click",()=>{
+        openZoom(img);
+      });
 
-      <div class="info">
-        <b>${p.name}</b><br>
-        RM${p.price}<br><br>
-        <button onclick="add('${p.name}',${p.price},event)">Add</button>
-      </div>
+      slides.appendChild(image);
+    });
+
+    let slider=document.createElement("div");
+    slider.className="slider";
+    slider.appendChild(slides);
+
+    // DOTS
+    let dots=document.createElement("div");
+    dots.className="dots";
+    dots.id="dots-"+id;
+
+    images.forEach((_,i)=>{
+      let d=document.createElement("span");
+      d.className="dot"+(i===0?" active":"");
+      dots.appendChild(d);
+    });
+
+    slider.appendChild(dots);
+
+    // SWIPE
+    slider.addEventListener("touchstart",e=>startSwipe(e,id));
+    slider.addEventListener("touchmove",e=>moveSwipe(e,id));
+    slider.addEventListener("touchend",()=>endSwipe(id));
+
+    // INFO
+    let info=document.createElement("div");
+    info.className="info";
+    info.innerHTML=`
+      <b>${p.name}</b><br>
+      RM${p.price}<br><br>
     `;
+
+    let btn=document.createElement("button");
+    btn.innerText="Add";
+
+    btn.addEventListener("click",(e)=>{
+      add(p.name,p.price,e);
+    });
+
+    info.appendChild(btn);
+
+    div.appendChild(slider);
+    div.appendChild(info);
 
     container.appendChild(div);
   });
@@ -237,16 +262,20 @@ function endSwipe(id){
 }
 
 /* zoom */
+const zoomBox=document.getElementById("zoomBox");
+const zoomImg=document.getElementById("zoomImg");
+
 function openZoom(src){
   zoomImg.src=src;
   zoomBox.style.display="flex";
 }
-function closeZoom(){
+
+zoomBox.addEventListener("click",()=>{
   zoomBox.style.display="none";
-}
+});
 
 /* cart */
-function add(name,price,e){
+function add(name,price){
   total+=price;
   document.getElementById("total").innerText=total;
 }
