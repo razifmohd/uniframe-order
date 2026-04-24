@@ -130,6 +130,11 @@ let files=[];
 let editId=null;
 let currentImages=[];
 
+const nameInput=document.getElementById("name");
+const priceInput=document.getElementById("price");
+const descInput=document.getElementById("desc");
+const submitBtn=document.getElementById("submitBtn");
+
 /* ================= UPLOAD ================= */
 const uploadBox=document.getElementById("uploadBox");
 const fileInput=document.getElementById("fileInput");
@@ -156,7 +161,7 @@ function handleFiles(selected){
   });
 }
 
-/* ================= ADD / UPDATE PRODUCT ================= */
+/* ================= ADD / UPDATE ================= */
 async function addProduct(){
 
   let name=nameInput.value;
@@ -181,14 +186,10 @@ async function addProduct(){
   }
 
   if(editId){
-
     let finalImages=[...currentImages,...imageUrls];
 
     await db.collection("products").doc(editId).update({
-      name,
-      price,
-      description:desc,
-      images: finalImages
+      name, price, description:desc, images:finalImages
     });
 
     editId=null;
@@ -196,12 +197,8 @@ async function addProduct(){
     submitBtn.innerText="Add Product";
 
   }else{
-
     await db.collection("products").add({
-      name,
-      price,
-      description:desc,
-      images:imageUrls
+      name, price, description:desc, images:imageUrls
     });
   }
 
@@ -223,10 +220,25 @@ function loadProducts(){
       div.innerHTML=`
         <b>${p.name}</b> - RM${p.price}<br>
         ${p.images?.map(img=>`<img src="${img}">`).join("")}
-
-        <button class="edit" onclick='editProduct("${doc.id}","${p.name}",${p.price},"${p.description||""}",${JSON.stringify(p.images||[])})'>Edit</button>
-        <button class="delete" onclick="deleteProduct('${doc.id}')">Delete</button>
       `;
+
+      // 🔥 EDIT BUTTON (NO INLINE BUG)
+      let editBtn=document.createElement("button");
+      editBtn.className="edit";
+      editBtn.innerText="Edit";
+
+      editBtn.onclick=()=>{
+        editProduct(doc.id,p);
+      };
+
+      // 🔥 DELETE
+      let delBtn=document.createElement("button");
+      delBtn.className="delete";
+      delBtn.innerText="Delete";
+      delBtn.onclick=()=>deleteProduct(doc.id);
+
+      div.appendChild(editBtn);
+      div.appendChild(delBtn);
 
       productList.appendChild(div);
     });
@@ -234,14 +246,14 @@ function loadProducts(){
 }
 
 /* ================= EDIT ================= */
-function editProduct(id,name,price,desc,images){
+function editProduct(id,p){
 
-  nameInput.value=name;
-  priceInput.value=price;
-  descInput.value=desc;
+  nameInput.value=p.name;
+  priceInput.value=p.price;
+  descInput.value=p.description || "";
 
   editId=id;
-  currentImages=[...images];
+  currentImages=[...(p.images||[])];
   files=[];
 
   renderPreview();
@@ -250,7 +262,7 @@ function editProduct(id,name,price,desc,images){
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
-/* ================= RENDER PREVIEW ================= */
+/* ================= PREVIEW ================= */
 function renderPreview(){
   preview.innerHTML="";
 
@@ -268,7 +280,6 @@ function renderPreview(){
   });
 }
 
-/* ================= REMOVE IMAGE ================= */
 function removeImage(index){
   currentImages.splice(index,1);
   renderPreview();
@@ -281,7 +292,7 @@ function deleteProduct(id){
   }
 }
 
-/* ================= LOAD ORDERS ================= */
+/* ================= ORDERS ================= */
 function loadOrders(){
   orderList.innerHTML="";
 
@@ -298,22 +309,29 @@ function loadOrders(){
         <b>${o.name}</b><br>
         ${o.phone}<br>
         ${o.address}<br><br>
-
         ${items}<br><br>
-
         Total: RM${o.total}<br>
         Status: ${o.status || "pending"}<br>
-
-        <button class="status" onclick="updateStatus('${doc.id}','paid')">Paid</button>
-        <button class="status" onclick="updateStatus('${doc.id}','done')">Done</button>
       `;
+
+      let paidBtn=document.createElement("button");
+      paidBtn.innerText="Paid";
+      paidBtn.className="status";
+      paidBtn.onclick=()=>updateStatus(doc.id,"paid");
+
+      let doneBtn=document.createElement("button");
+      doneBtn.innerText="Done";
+      doneBtn.className="status";
+      doneBtn.onclick=()=>updateStatus(doc.id,"done");
+
+      div.appendChild(paidBtn);
+      div.appendChild(doneBtn);
 
       orderList.appendChild(div);
     });
   });
 }
 
-/* UPDATE STATUS */
 function updateStatus(id,status){
   db.collection("orders").doc(id).update({status}).then(loadOrders);
 }
