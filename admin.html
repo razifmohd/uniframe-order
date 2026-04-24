@@ -12,10 +12,6 @@ body{
   padding:20px;
 }
 
-h2{
-  margin-top:30px;
-}
-
 input{
   width:100%;
   padding:10px;
@@ -36,112 +32,150 @@ button{
   font-weight:bold;
 }
 
-.product, .order{
+.upload-box{
+  border:2px dashed #555;
+  padding:20px;
+  text-align:center;
+  border-radius:10px;
+  cursor:pointer;
+}
+
+#preview img{
+  width:70px;
+  height:70px;
+  object-fit:cover;
+  margin:5px;
+  border-radius:8px;
+}
+
+.product{
   background:#1a1a1a;
-  padding:12px;
+  padding:10px;
   margin-top:10px;
   border-radius:10px;
 }
 
-img{
-  width:60px;
-  height:60px;
-  object-fit:cover;
-  margin:3px;
-  border-radius:6px;
-}
-
 .delete{
   background:red;
-}
-
-.status{
-  background:#333;
 }
 </style>
 </head>
 
 <body>
 
-<h1>ADMIN PANEL</h1>
-
-<!-- 🔥 ADD PRODUCT -->
 <h2>Tambah Produk</h2>
 
 <input id="name" placeholder="Nama produk">
 <input id="price" placeholder="Harga">
 <input id="desc" placeholder="Description">
-<input id="img1" placeholder="Link gambar 1">
-<input id="img2" placeholder="Link gambar 2">
+
+<div class="upload-box" id="uploadBox">
+  Klik atau drag gambar
+  <input type="file" id="fileInput" multiple hidden>
+</div>
+
+<div id="preview"></div>
 
 <button onclick="addProduct()">Add Product</button>
 
 <hr>
 
-<!-- 🔥 PRODUCT LIST -->
-<h2>Produk</h2>
+<h3>Produk</h3>
 <div id="productList"></div>
-
-<hr>
-
-<!-- 🔥 ORDER LIST -->
-<h2>Orders</h2>
-<div id="orderList"></div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyDCTH6uXY-ksrOJ0HnLN3l6tCeF1wqojhI",
-  authDomain: "uniframe-order.firebaseapp.com",
-  projectId: "uniframe-order"
+const firebaseConfig={
+  apiKey:"AIzaSyDCTH6uXY-ksrOJ0HnLN3l6tCeF1wqojhI",
+  authDomain:"uniframe-order.firebaseapp.com",
+  projectId:"uniframe-order"
 };
 
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+const db=firebase.firestore();
 
-/* =======================
-   🔥 ADD PRODUCT
-======================= */
-function addProduct(){
-  let name = document.getElementById("name").value;
-  let price = parseInt(document.getElementById("price").value);
-  let desc = document.getElementById("desc").value;
-  let img1 = document.getElementById("img1").value;
-  let img2 = document.getElementById("img2").value;
+let files=[];
 
-  if(!name || !price || !img1){
+const uploadBox=document.getElementById("uploadBox");
+const fileInput=document.getElementById("fileInput");
+const preview=document.getElementById("preview");
+
+uploadBox.onclick=()=>fileInput.click();
+
+fileInput.onchange=e=>handleFiles(e.target.files);
+
+uploadBox.ondrop=e=>{
+  e.preventDefault();
+  handleFiles(e.dataTransfer.files);
+};
+
+uploadBox.ondragover=e=>e.preventDefault();
+
+function handleFiles(selected){
+  files=[...selected];
+  preview.innerHTML="";
+
+  files.forEach(file=>{
+    let img=document.createElement("img");
+    img.src=URL.createObjectURL(file);
+    preview.appendChild(img);
+  });
+}
+
+/* 🔥 ADD PRODUCT */
+async function addProduct(){
+
+  let name=document.getElementById("name").value;
+  let price=parseInt(document.getElementById("price").value);
+  let desc=document.getElementById("desc").value;
+
+  if(!name || !price || files.length===0){
     alert("Isi semua");
     return;
   }
 
-  db.collection("products").add({
+  let imageUrls=[];
+
+  for(let i=0;i<files.length;i++){
+
+    let formData=new FormData();
+    formData.append("image",files[i]);
+
+    let res=await fetch("https://api.imgbb.com/1/upload?key=682bdd4f17d96ffb219da4dcc3c4b2c4",{
+      method:"POST",
+      body:formData
+    });
+
+    let data=await res.json();
+    imageUrls.push(data.data.url);
+  }
+
+  await db.collection("products").add({
     name,
     price,
-    description: desc,
-    images: [img1, img2]
-  }).then(()=>{
-    alert("Produk tambah!");
-    loadProducts();
+    description:desc,
+    images:imageUrls
   });
+
+  alert("Produk tambah!");
+  location.reload();
 }
 
-/* =======================
-   🔥 LOAD PRODUCTS
-======================= */
+/* LOAD PRODUK */
 function loadProducts(){
-  const list = document.getElementById("productList");
-  list.innerHTML = "";
+  const list=document.getElementById("productList");
+  list.innerHTML="";
 
   db.collection("products").get().then(snapshot=>{
     snapshot.forEach(doc=>{
-      let p = doc.data();
+      let p=doc.data();
 
-      let div = document.createElement("div");
-      div.className = "product";
+      let div=document.createElement("div");
+      div.className="product";
 
-      div.innerHTML = `
+      div.innerHTML=`
         <b>${p.name}</b> - RM${p.price}<br>
         ${p.images ? p.images.map(img=>`<img src="${img}">`).join("") : ""}
         <button class="delete" onclick="deleteProduct('${doc.id}')">Delete</button>
@@ -152,9 +186,6 @@ function loadProducts(){
   });
 }
 
-/* =======================
-   🔥 DELETE PRODUCT
-======================= */
 function deleteProduct(id){
   if(confirm("Delete produk?")){
     db.collection("products").doc(id).delete().then(()=>{
@@ -163,58 +194,7 @@ function deleteProduct(id){
   }
 }
 
-/* =======================
-   🔥 LOAD ORDERS
-======================= */
-function loadOrders(){
-  const list = document.getElementById("orderList");
-  list.innerHTML = "";
-
-  db.collection("orders").orderBy("time","desc").get().then(snapshot=>{
-    snapshot.forEach(doc=>{
-      let o = doc.data();
-
-      let items = o.items.map(i=>`- ${i.name} RM${i.price}`).join("<br>");
-
-      let div = document.createElement("div");
-      div.className = "order";
-
-      div.innerHTML = `
-        <b>${o.name}</b><br>
-        ${o.phone}<br>
-        ${o.address}<br><br>
-
-        ${items}<br><br>
-
-        Total: RM${o.total}<br>
-        Status: ${o.status || "pending"}<br>
-
-        <button class="status" onclick="updateStatus('${doc.id}','paid')">Set Paid</button>
-        <button class="status" onclick="updateStatus('${doc.id}','done')">Set Done</button>
-      `;
-
-      list.appendChild(div);
-    });
-  });
-}
-
-/* =======================
-   🔥 UPDATE STATUS
-======================= */
-function updateStatus(id,status){
-  db.collection("orders").doc(id).update({
-    status: status
-  }).then(()=>{
-    loadOrders();
-  });
-}
-
-/* =======================
-   🔥 INIT
-======================= */
 loadProducts();
-loadOrders();
-
 </script>
 
 </body>
