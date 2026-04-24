@@ -1,122 +1,92 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Admin Panel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Panel</title>
 
-  <style>
-    body {
-      font-family: Arial;
-      background:#0f0f0f;
-      color:white;
-      padding:20px;
-    }
+<style>
+body{
+  font-family:Arial;
+  background:#0f0f0f;
+  color:white;
+  padding:20px;
+}
 
-    input {
-      width:100%;
-      padding:12px;
-      margin:6px 0;
-      border-radius:10px;
-      border:none;
-      background:#1f1f1f;
-      color:white;
-    }
+h2{
+  margin-top:30px;
+}
 
-    .upload-box {
-      border:2px dashed #555;
-      padding:20px;
-      text-align:center;
-      cursor:pointer;
-      border-radius:10px;
-    }
+input{
+  width:100%;
+  padding:10px;
+  margin:5px 0;
+  border-radius:8px;
+  border:none;
+  background:#1f1f1f;
+  color:white;
+}
 
-    #preview img {
-      width:80px;
-      height:80px;
-      object-fit:cover;
-      margin:5px;
-      border-radius:8px;
-    }
+button{
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  margin-top:10px;
+  width:100%;
+  background:#ffcc00;
+  font-weight:bold;
+}
 
-    .product {
-      background:#1a1a1a;
-      padding:10px;
-      margin-top:10px;
-      border-radius:10px;
-    }
+.product, .order{
+  background:#1a1a1a;
+  padding:12px;
+  margin-top:10px;
+  border-radius:10px;
+}
 
-    .gallery {
-      display:flex;
-      gap:5px;
-      flex-wrap:wrap;
-      margin-bottom:8px;
-    }
+img{
+  width:60px;
+  height:60px;
+  object-fit:cover;
+  margin:3px;
+  border-radius:6px;
+}
 
-    .img-box {
-      position:relative;
-      cursor:pointer;
-    }
+.delete{
+  background:red;
+}
 
-    .img-box img {
-      width:70px;
-      height:70px;
-      object-fit:cover;
-      border-radius:8px;
-      border:2px solid #333;
-    }
-
-    .cover {
-      border:3px solid lime !important;
-    }
-
-    .label {
-      position:absolute;
-      bottom:0;
-      left:0;
-      right:0;
-      background:lime;
-      color:black;
-      font-size:10px;
-      text-align:center;
-      border-radius:0 0 8px 8px;
-    }
-
-    button {
-      padding:10px;
-      border:none;
-      border-radius:8px;
-      margin-top:10px;
-      width:100%;
-      background:#ffcc00;
-      font-weight:bold;
-    }
-
-    .delete {
-      background:red;
-    }
-  </style>
+.status{
+  background:#333;
+}
+</style>
 </head>
 
 <body>
 
+<h1>ADMIN PANEL</h1>
+
+<!-- 🔥 ADD PRODUCT -->
 <h2>Tambah Produk</h2>
 
 <input id="name" placeholder="Nama produk">
 <input id="price" placeholder="Harga">
-<input id="category" placeholder="Kategori">
-
-<div class="upload-box" id="uploadBox">
-  Klik atau drag gambar
-  <input type="file" id="imageFile" multiple style="display:none;">
-</div>
-
-<div id="preview"></div>
+<input id="desc" placeholder="Description">
+<input id="img1" placeholder="Link gambar 1">
+<input id="img2" placeholder="Link gambar 2">
 
 <button onclick="addProduct()">Add Product</button>
 
 <hr>
 
-<h3>Senarai Produk</h3>
+<!-- 🔥 PRODUCT LIST -->
+<h2>Produk</h2>
 <div id="productList"></div>
+
+<hr>
+
+<!-- 🔥 ORDER LIST -->
+<h2>Orders</h2>
+<div id="orderList"></div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -131,75 +101,35 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-let files = [];
-
-const uploadBox = document.getElementById("uploadBox");
-const fileInput = document.getElementById("imageFile");
-const preview = document.getElementById("preview");
-
-uploadBox.onclick = () => fileInput.click();
-
-fileInput.onchange = e => handleFiles(e.target.files);
-
-uploadBox.ondrop = e => {
-  e.preventDefault();
-  handleFiles(e.dataTransfer.files);
-};
-
-uploadBox.ondragover = e => e.preventDefault();
-
-function handleFiles(selected){
-  files = [...selected];
-  preview.innerHTML = "";
-
-  files.forEach(file=>{
-    let img = document.createElement("img");
-    img.src = URL.createObjectURL(file);
-    preview.appendChild(img);
-  });
-}
-
-async function addProduct(){
-
+/* =======================
+   🔥 ADD PRODUCT
+======================= */
+function addProduct(){
   let name = document.getElementById("name").value;
   let price = parseInt(document.getElementById("price").value);
-  let category = document.getElementById("category").value;
+  let desc = document.getElementById("desc").value;
+  let img1 = document.getElementById("img1").value;
+  let img2 = document.getElementById("img2").value;
 
-  if(!name || !price || files.length===0){
+  if(!name || !price || !img1){
     alert("Isi semua");
     return;
   }
 
-  let imageUrls = [];
-
-  for(let i=0;i<files.length;i++){
-
-    let formData = new FormData();
-    formData.append("image", files[i]);
-
-    let res = await fetch("https://api.imgbb.com/1/upload?key=682bdd4f17d96ffb219da4dcc3c4b2c4",{
-      method:"POST",
-      body:formData
-    });
-
-    let data = await res.json();
-
-    imageUrls.push(data.data.url);
-  }
-
-  await db.collection("products").add({
+  db.collection("products").add({
     name,
     price,
-    category,
-    images: imageUrls,
-    coverIndex: 0 // default first image jadi cover
+    description: desc,
+    images: [img1, img2]
+  }).then(()=>{
+    alert("Produk tambah!");
+    loadProducts();
   });
-
-  alert("Produk tambah!");
-  location.reload();
 }
 
-// 🔥 LOAD PRODUK
+/* =======================
+   🔥 LOAD PRODUCTS
+======================= */
 function loadProducts(){
   const list = document.getElementById("productList");
   list.innerHTML = "";
@@ -207,24 +137,13 @@ function loadProducts(){
   db.collection("products").get().then(snapshot=>{
     snapshot.forEach(doc=>{
       let p = doc.data();
-      let coverIndex = p.coverIndex || 0;
 
       let div = document.createElement("div");
       div.className = "product";
 
       div.innerHTML = `
-        <div class="gallery">
-          ${p.images ? p.images.map((img, index) => `
-            <div class="img-box" onclick="setCover('${doc.id}', ${index})">
-              <img src="${img}" class="${index===coverIndex ? 'cover' : ''}">
-              
-              ${index===coverIndex ? `<div class="label">COVER</div>` : ""}
-            </div>
-          `).join("") : ""}
-        </div>
-
-        ${p.name} - RM${p.price}
-
+        <b>${p.name}</b> - RM${p.price}<br>
+        ${p.images ? p.images.map(img=>`<img src="${img}">`).join("") : ""}
         <button class="delete" onclick="deleteProduct('${doc.id}')">Delete</button>
       `;
 
@@ -233,24 +152,69 @@ function loadProducts(){
   });
 }
 
-// 🔥 SET COVER
-function setCover(id, index){
-  db.collection("products").doc(id).update({
-    coverIndex: index
-  }).then(()=>{
-    loadProducts();
-  });
-}
-
+/* =======================
+   🔥 DELETE PRODUCT
+======================= */
 function deleteProduct(id){
-  if(confirm("Delete produk ni?")){
+  if(confirm("Delete produk?")){
     db.collection("products").doc(id).delete().then(()=>{
       loadProducts();
     });
   }
 }
 
+/* =======================
+   🔥 LOAD ORDERS
+======================= */
+function loadOrders(){
+  const list = document.getElementById("orderList");
+  list.innerHTML = "";
+
+  db.collection("orders").orderBy("time","desc").get().then(snapshot=>{
+    snapshot.forEach(doc=>{
+      let o = doc.data();
+
+      let items = o.items.map(i=>`- ${i.name} RM${i.price}`).join("<br>");
+
+      let div = document.createElement("div");
+      div.className = "order";
+
+      div.innerHTML = `
+        <b>${o.name}</b><br>
+        ${o.phone}<br>
+        ${o.address}<br><br>
+
+        ${items}<br><br>
+
+        Total: RM${o.total}<br>
+        Status: ${o.status || "pending"}<br>
+
+        <button class="status" onclick="updateStatus('${doc.id}','paid')">Set Paid</button>
+        <button class="status" onclick="updateStatus('${doc.id}','done')">Set Done</button>
+      `;
+
+      list.appendChild(div);
+    });
+  });
+}
+
+/* =======================
+   🔥 UPDATE STATUS
+======================= */
+function updateStatus(id,status){
+  db.collection("orders").doc(id).update({
+    status: status
+  }).then(()=>{
+    loadOrders();
+  });
+}
+
+/* =======================
+   🔥 INIT
+======================= */
 loadProducts();
+loadOrders();
+
 </script>
 
 </body>
