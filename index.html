@@ -40,6 +40,7 @@ body{
   overflow:hidden;
 }
 
+/* slider */
 .slider{
   overflow:hidden;
   position:relative;
@@ -48,16 +49,12 @@ body{
 
 .slides{
   display:flex;
-  width:100%;
-  height:100%;
   transition:0.3s;
 }
 
 .slides img{
   width:100%;
-  height:100%;
   object-fit:cover;
-  flex-shrink:0;
 }
 
 /* dots */
@@ -81,23 +78,32 @@ body{
   background:#ffcc00;
 }
 
-/* zoom modal */
+/* zoom */
 .zoom{
   position:fixed;
   top:0;
   left:0;
   width:100%;
   height:100%;
-  background:#000;
+  background:black;
   display:none;
   justify-content:center;
   align-items:center;
-  z-index:999;
 }
 
 .zoom img{
   width:100%;
   max-width:600px;
+}
+
+/* cart animation */
+.cart-fly{
+  position:fixed;
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  z-index:999;
+  pointer-events:none;
 }
 
 .info{
@@ -134,7 +140,6 @@ button{
   <button>Checkout</button>
 </div>
 
-<!-- zoom modal -->
 <div class="zoom" id="zoomBox" onclick="closeZoom()">
   <img id="zoomImg">
 </div>
@@ -160,6 +165,7 @@ db.collection("products").get().then(snapshot=>{
 
   snapshot.forEach(doc=>{
     let p=doc.data();
+    let id=doc.id;
 
     let images=p.images || [];
 
@@ -176,21 +182,23 @@ db.collection("products").get().then(snapshot=>{
 
     div.innerHTML=`
       <div class="slider"
-        ontouchstart="startSwipe(event,this)"
-        ontouchmove="moveSwipe(event,this)"
-        ontouchend="endSwipe(this)">
-        
-        <div class="slides">
+        ontouchstart="startSwipe(event,'${id}')"
+        ontouchmove="moveSwipe(event,'${id}')"
+        ontouchend="endSwipe('${id}')">
+
+        <div class="slides" id="slides-${id}">
           ${slidesHTML}
         </div>
 
-        <div class="dots">${dotsHTML}</div>
+        <div class="dots" id="dots-${id}">
+          ${dotsHTML}
+        </div>
       </div>
 
       <div class="info">
         <b>${p.name}</b><br>
         RM${p.price}<br><br>
-        <button onclick="add('${p.name}',${p.price})">Add</button>
+        <button onclick="add('${p.name}',${p.price},event)">Add</button>
       </div>
     `;
 
@@ -198,59 +206,75 @@ db.collection("products").get().then(snapshot=>{
   });
 });
 
-/* 🔥 SWIPE SMOOTH */
-let startX=0;
-let currentIndex=0;
+/* swipe per product */
+let swipeData={};
 
-function startSwipe(e,el){
-  startX=e.touches[0].clientX;
-  el.style.transition="none";
+function startSwipe(e,id){
+  swipeData[id]={startX:e.touches[0].clientX,index:swipeData[id]?.index||0};
 }
 
-function moveSwipe(e,el){
-  let moveX=e.touches[0].clientX;
-  let diff=moveX-startX;
+function moveSwipe(e,id){
+  let data=swipeData[id];
+  let diff=e.touches[0].clientX-data.startX;
 
-  let slides=el.querySelector(".slides");
-  slides.style.transform=`translateX(${diff - currentIndex*100}%)`;
+  let slides=document.getElementById("slides-"+id);
+  slides.style.transform=`translateX(${diff - data.index*100}%)`;
 }
 
-function endSwipe(el){
-  let slides=el.querySelector(".slides");
-  slides.style.transition="0.3s";
+function endSwipe(id){
+  let data=swipeData[id];
+  let slides=document.getElementById("slides-"+id);
+  let dots=document.getElementById("dots-"+id").children;
 
-  let width=el.offsetWidth;
-  let moved=slides.style.transform.match(/-?\d+/);
+  let diff=parseInt(slides.style.transform.match(/-?\d+/))||0;
 
-  if(moved){
-    let value=parseInt(moved[0]);
-    if(value < -50) currentIndex++;
-    if(value > 50) currentIndex--;
+  if(diff<-50) data.index++;
+  if(diff>50) data.index--;
+
+  let max=slides.children.length-1;
+  if(data.index<0) data.index=0;
+  if(data.index>max) data.index=max;
+
+  slides.style.transform=`translateX(-${data.index*100}%)`;
+
+  for(let i=0;i<dots.length;i++){
+    dots[i].classList.remove("active");
   }
+  dots[data.index].classList.add("active");
 
-  if(currentIndex<0) currentIndex=0;
-
-  let totalSlides=slides.children.length;
-  if(currentIndex>=totalSlides) currentIndex=totalSlides-1;
-
-  slides.style.transform=`translateX(-${currentIndex*100}%)`;
+  swipeData[id]=data;
 }
 
-/* 🔥 ZOOM */
+/* zoom */
 function openZoom(src){
-  document.getElementById("zoomImg").src=src;
-  document.getElementById("zoomBox").style.display="flex";
+  zoomImg.src=src;
+  zoomBox.style.display="flex";
 }
-
 function closeZoom(){
-  document.getElementById("zoomBox").style.display="none";
+  zoomBox.style.display="none";
 }
 
-/* CART */
-function add(name,price){
-  cart.push({name,price});
+/* cart animation */
+function add(name,price,e){
   total+=price;
   document.getElementById("total").innerText=total;
+
+  let img=e.target.closest(".product").querySelector("img");
+
+  let clone=img.cloneNode();
+  clone.className="cart-fly";
+  clone.style.left=img.getBoundingClientRect().left+"px";
+  clone.style.top=img.getBoundingClientRect().top+"px";
+
+  document.body.appendChild(clone);
+
+  setTimeout(()=>{
+    clone.style.left="90%";
+    clone.style.top="95%";
+    clone.style.transform="scale(0.2)";
+  },10);
+
+  setTimeout(()=>clone.remove(),600);
 }
 </script>
 
