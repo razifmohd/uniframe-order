@@ -21,14 +21,14 @@ body{
 
 #products{
   display:grid;
-  grid-template-columns: 1fr;
+  grid-template-columns:1fr;
   gap:12px;
   padding:12px;
 }
 
 @media(min-width:600px){
   #products{
-    grid-template-columns: repeat(2,1fr);
+    grid-template-columns:repeat(2,1fr);
     max-width:700px;
     margin:auto;
   }
@@ -38,29 +38,29 @@ body{
   background:#1a1a1a;
   border-radius:12px;
   overflow:hidden;
-  box-shadow:0 4px 10px rgba(0,0,0,0.4);
 }
 
 .slider{
-  position:relative;
-  width:100%;
-  aspect-ratio:1/1;
   overflow:hidden;
+  position:relative;
+  aspect-ratio:1/1;
 }
 
-.slide{
-  position:absolute;
+.slides{
+  display:flex;
   width:100%;
   height:100%;
-  object-fit:cover;
-  opacity:0;
   transition:0.3s;
 }
 
-.slide.active{
-  opacity:1;
+.slides img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  flex-shrink:0;
 }
 
+/* dots */
 .dots{
   position:absolute;
   bottom:8px;
@@ -69,37 +69,39 @@ body{
 }
 
 .dot{
-  display:inline-block;
   width:6px;
   height:6px;
-  margin:0 2px;
   background:#aaa;
+  display:inline-block;
   border-radius:50%;
+  margin:2px;
 }
 
 .dot.active{
   background:#ffcc00;
 }
 
+/* zoom modal */
+.zoom{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:#000;
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:999;
+}
+
+.zoom img{
+  width:100%;
+  max-width:600px;
+}
+
 .info{
   padding:12px;
-}
-
-.title{
-  font-size:16px;
-  font-weight:bold;
-}
-
-.price{
-  color:#ffcc00;
-  margin:6px 0;
-  font-weight:bold;
-}
-
-.desc{
-  font-size:13px;
-  color:#ccc;
-  margin-bottom:8px;
 }
 
 button{
@@ -108,7 +110,6 @@ button{
   background:#ffcc00;
   border:none;
   border-radius:8px;
-  font-weight:bold;
 }
 
 .checkout{
@@ -126,12 +127,16 @@ button{
 <body>
 
 <div class="header">Uniframe</div>
-
 <div id="products"></div>
 
 <div class="checkout">
   <span>Total: RM<span id="total">0</span></span>
-  <button onclick="checkout()">Checkout</button>
+  <button>Checkout</button>
+</div>
+
+<!-- zoom modal -->
+<div class="zoom" id="zoomBox" onclick="closeZoom()">
+  <img id="zoomImg">
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -150,43 +155,41 @@ const db=firebase.firestore();
 let cart=[];
 let total=0;
 
-/* 🔥 LOAD PRODUK */
 db.collection("products").get().then(snapshot=>{
   const container=document.getElementById("products");
-  container.innerHTML="";
 
   snapshot.forEach(doc=>{
     let p=doc.data();
 
-    let slides="";
-    let dots="";
+    let images=p.images || [];
 
-    if(p.images && p.images.length>0){
-      slides=p.images.map((img,i)=>`
-        <img src="${img}" class="slide ${i===0?'active':''}">
-      `).join("");
+    let slidesHTML=images.map(img=>`
+      <img src="${img}" onclick="openZoom('${img}')">
+    `).join("");
 
-      dots=p.images.map((_,i)=>`
-        <span class="dot ${i===0?'active':''}"></span>
-      `).join("");
-    }
+    let dotsHTML=images.map((_,i)=>`
+      <span class="dot ${i===0?'active':''}"></span>
+    `).join("");
 
     let div=document.createElement("div");
     div.className="product";
 
     div.innerHTML=`
       <div class="slider"
-        onclick="nextSlide(this)"
-        ontouchstart="touchStart(event)"
-        ontouchend="touchEnd(event,this)">
-        ${slides}
-        <div class="dots">${dots}</div>
+        ontouchstart="startSwipe(event,this)"
+        ontouchmove="moveSwipe(event,this)"
+        ontouchend="endSwipe(this)">
+        
+        <div class="slides">
+          ${slidesHTML}
+        </div>
+
+        <div class="dots">${dotsHTML}</div>
       </div>
 
       <div class="info">
-        <div class="title">${p.name || ''}</div>
-        <div class="price">RM${p.price || 0}</div>
-        <div class="desc">${p.description || ''}</div>
+        <b>${p.name}</b><br>
+        RM${p.price}<br><br>
         <button onclick="add('${p.name}',${p.price})">Add</button>
       </div>
     `;
@@ -195,62 +198,52 @@ db.collection("products").get().then(snapshot=>{
   });
 });
 
-/* 🔥 CLICK SLIDE */
-function nextSlide(el){
-  let slides=el.querySelectorAll(".slide");
-  let dots=el.querySelectorAll(".dot");
-  let current=0;
-
-  slides.forEach((s,i)=>{
-    if(s.classList.contains("active")){
-      s.classList.remove("active");
-      dots[i].classList.remove("active");
-      current=i;
-    }
-  });
-
-  let next=(current+1)%slides.length;
-  slides[next].classList.add("active");
-  dots[next].classList.add("active");
-}
-
-/* 🔥 PREV SLIDE */
-function prevSlide(el){
-  let slides=el.querySelectorAll(".slide");
-  let dots=el.querySelectorAll(".dot");
-  let current=0;
-
-  slides.forEach((s,i)=>{
-    if(s.classList.contains("active")){
-      s.classList.remove("active");
-      dots[i].classList.remove("active");
-      current=i;
-    }
-  });
-
-  let prev=(current-1+slides.length)%slides.length;
-  slides[prev].classList.add("active");
-  dots[prev].classList.add("active");
-}
-
-/* 🔥 SWIPE */
+/* 🔥 SWIPE SMOOTH */
 let startX=0;
+let currentIndex=0;
 
-function touchStart(e){
+function startSwipe(e,el){
   startX=e.touches[0].clientX;
+  el.style.transition="none";
 }
 
-function touchEnd(e,el){
-  let endX=e.changedTouches[0].clientX;
-  let diff=startX-endX;
+function moveSwipe(e,el){
+  let moveX=e.touches[0].clientX;
+  let diff=moveX-startX;
 
-  if(Math.abs(diff)<40) return;
+  let slides=el.querySelector(".slides");
+  slides.style.transform=`translateX(${diff - currentIndex*100}%)`;
+}
 
-  if(diff>0){
-    nextSlide(el); // kiri
-  }else{
-    prevSlide(el); // kanan
+function endSwipe(el){
+  let slides=el.querySelector(".slides");
+  slides.style.transition="0.3s";
+
+  let width=el.offsetWidth;
+  let moved=slides.style.transform.match(/-?\d+/);
+
+  if(moved){
+    let value=parseInt(moved[0]);
+    if(value < -50) currentIndex++;
+    if(value > 50) currentIndex--;
   }
+
+  if(currentIndex<0) currentIndex=0;
+
+  let totalSlides=slides.children.length;
+  if(currentIndex>=totalSlides) currentIndex=totalSlides-1;
+
+  slides.style.transform=`translateX(-${currentIndex*100}%)`;
+}
+
+/* 🔥 ZOOM */
+function openZoom(src){
+  document.getElementById("zoomImg").src=src;
+  document.getElementById("zoomBox").style.display="flex";
+}
+
+function closeZoom(){
+  document.getElementById("zoomBox").style.display="none";
 }
 
 /* CART */
@@ -258,10 +251,6 @@ function add(name,price){
   cart.push({name,price});
   total+=price;
   document.getElementById("total").innerText=total;
-}
-
-function checkout(){
-  alert("Next kita sambung WhatsApp + detail order 🔥");
 }
 </script>
 
