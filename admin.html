@@ -12,9 +12,7 @@ body{
   padding:20px;
 }
 
-h2{
-  margin-top:30px;
-}
+h2{ margin-top:30px; }
 
 input{
   width:100%;
@@ -52,6 +50,19 @@ button{
   border-radius:8px;
 }
 
+.preview-item{
+  display:inline-block;
+  text-align:center;
+}
+
+.preview-item button{
+  width:auto;
+  padding:3px 6px;
+  font-size:12px;
+  background:red;
+  margin-top:2px;
+}
+
 .product, .order{
   background:#1a1a1a;
   padding:10px;
@@ -77,7 +88,6 @@ img{
 
 <h1>ADMIN PANEL</h1>
 
-<!-- 🔥 PRODUK -->
 <h2>Tambah / Edit Produk</h2>
 
 <input id="name" placeholder="Nama produk">
@@ -100,7 +110,6 @@ img{
 
 <hr>
 
-<!-- 🔥 ORDERS -->
 <h2>Orders</h2>
 <div id="orderList"></div>
 
@@ -119,6 +128,7 @@ const db=firebase.firestore();
 
 let files=[];
 let editId=null;
+let currentImages=[];
 
 /* ================= UPLOAD ================= */
 const uploadBox=document.getElementById("uploadBox");
@@ -138,7 +148,7 @@ uploadBox.ondragover=e=>e.preventDefault();
 
 function handleFiles(selected){
   files=[...selected];
-  preview.innerHTML="";
+
   files.forEach(file=>{
     let img=document.createElement("img");
     img.src=URL.createObjectURL(file);
@@ -171,15 +181,27 @@ async function addProduct(){
   }
 
   if(editId){
-    let updateData={name,price,description:desc};
-    if(imageUrls.length>0) updateData.images=imageUrls;
 
-    await db.collection("products").doc(editId).update(updateData);
+    let finalImages=[...currentImages,...imageUrls];
+
+    await db.collection("products").doc(editId).update({
+      name,
+      price,
+      description:desc,
+      images: finalImages
+    });
+
     editId=null;
+    currentImages=[];
     submitBtn.innerText="Add Product";
+
   }else{
+
     await db.collection("products").add({
-      name,price,description:desc,images:imageUrls
+      name,
+      price,
+      description:desc,
+      images:imageUrls
     });
   }
 
@@ -202,7 +224,7 @@ function loadProducts(){
         <b>${p.name}</b> - RM${p.price}<br>
         ${p.images?.map(img=>`<img src="${img}">`).join("")}
 
-        <button class="edit" onclick="editProduct('${doc.id}','${p.name}',${p.price},'${p.description||""}')">Edit</button>
+        <button class="edit" onclick='editProduct("${doc.id}","${p.name}",${p.price},"${p.description||""}",${JSON.stringify(p.images||[])})'>Edit</button>
         <button class="delete" onclick="deleteProduct('${doc.id}')">Delete</button>
       `;
 
@@ -211,15 +233,45 @@ function loadProducts(){
   });
 }
 
-/* EDIT */
-function editProduct(id,name,price,desc){
+/* ================= EDIT ================= */
+function editProduct(id,name,price,desc,images){
+
   nameInput.value=name;
   priceInput.value=price;
   descInput.value=desc;
 
   editId=id;
+  currentImages=[...images];
+  files=[];
+
+  renderPreview();
+
   submitBtn.innerText="Update Product";
   window.scrollTo({top:0,behavior:"smooth"});
+}
+
+/* ================= RENDER PREVIEW ================= */
+function renderPreview(){
+  preview.innerHTML="";
+
+  currentImages.forEach((img,i)=>{
+    let div=document.createElement("div");
+    div.className="preview-item";
+
+    div.innerHTML=`
+      <img src="${img}">
+      <br>
+      <button onclick="removeImage(${i})">❌</button>
+    `;
+
+    preview.appendChild(div);
+  });
+}
+
+/* ================= REMOVE IMAGE ================= */
+function removeImage(index){
+  currentImages.splice(index,1);
+  renderPreview();
 }
 
 /* DELETE */
